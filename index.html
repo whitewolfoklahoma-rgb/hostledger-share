@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HostLedger — Bookkeeping &amp; Profit Tracker for Airbnb &amp; Vrbo Hosts</title>
+<style>
+:root{
+  --bg:#f3f6f6; --card:#ffffff; --ink:#20313a; --muted:#6d7f89;
+  --brand:#0e5f5c; --brand2:#128078; --accent:#e8a33d; --accent2:#f6c25e;
+  --red:#b23a2e; --redbg:#f8e3e0; --greenbg:#e1efe7; --line:#dbe3e5; --soft:#edf2f2;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0;padding:0;}
+body{background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; font-size:16px; line-height:1.45;}
+header.app{background:var(--brand); color:#fff; padding:14px 16px 10px;}
+header.app .brand{font-size:24px; font-weight:800; letter-spacing:.2px;}
+header.app .brand .gold{color:var(--accent2);}
+header.app .tag{font-size:13px; opacity:.88; margin-top:2px;}
+nav.tabs{display:flex; overflow-x:auto; background:var(--brand); padding:0 6px 8px; gap:4px; scrollbar-width:none;}
+nav.tabs::-webkit-scrollbar{display:none;}
+nav.tabs button{flex:0 0 auto; min-height:42px; padding:8px 14px; border:0; border-radius:20px; background:rgba(255,255,255,.15); color:#fff; font-size:15px; font-weight:600; cursor:pointer;}
+nav.tabs button.active{background:var(--accent); color:#3a2a05;}
+main{max-width:980px; margin:0 auto; padding:14px 12px 40px;}
+h2.view-title{margin:4px 2px 12px; font-size:21px;}
+h3{margin:18px 2px 8px; font-size:17px;}
+.card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:12px; box-shadow:0 1px 2px rgba(20,50,50,.05);}
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;}
+.stat{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px;}
+.stat .k{font-size:12.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.5px; font-weight:700;}
+.stat .v{font-size:25px; font-weight:800; margin-top:2px;}
+.stat .s{font-size:13px; color:var(--muted); margin-top:2px;}
+.bad{color:var(--red); font-weight:700;}
+.good{color:var(--brand2); font-weight:700;}
+label{display:block; font-size:13.5px; font-weight:600; color:var(--muted); margin:10px 0 4px;}
+input,select,textarea{width:100%; min-height:44px; padding:9px 10px; font-size:16px; border:1.5px solid var(--line); border-radius:9px; background:#fff; color:var(--ink); font-family:inherit;}
+textarea{min-height:70px;}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--accent); border-color:var(--accent);}
+.row{display:flex; gap:10px; flex-wrap:wrap;}
+.row > div{flex:1 1 140px;}
+button.btn{min-height:44px; padding:10px 18px; border:0; border-radius:9px; background:var(--brand); color:#fff; font-size:16px; font-weight:700; cursor:pointer;}
+button.btn:hover{background:var(--brand2);}
+button.btn.amber{background:var(--accent); color:#3a2a05;}
+button.btn.ghost{background:var(--soft); color:var(--ink); border:1px solid var(--line);}
+button.btn.danger{background:var(--red);}
+button.btn.small{min-height:38px; padding:6px 12px; font-size:14px;min-height:40px;}
+table{width:100%; border-collapse:collapse; font-size:14.5px;}
+th,td{padding:8px 6px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top;}
+th{color:var(--muted); font-size:12.5px; text-transform:uppercase; letter-spacing:.4px;}
+td.num,th.num{text-align:right;}
+tr.tot td{font-weight:800; border-top:2px solid var(--ink); border-bottom:0;}
+.empty{color:var(--muted); text-align:center; padding:18px 8px; font-size:15px;}
+.pill{display:inline-block; padding:2px 9px; border-radius:20px; font-size:12.5px; font-weight:700; background:var(--soft); color:var(--ink); white-space:nowrap;}
+.pill.green{background:var(--greenbg); color:#1c5c43;}
+.pill.red{background:var(--redbg); color:var(--red);}
+.pill.amber{background:#faf0d7; color:#7a5a12;}
+.mut{color:var(--muted);} .small{font-size:13px;}
+.del{background:none; border:0; color:var(--red); font-size:18px; cursor:pointer; min-width:38px; min-height:38px;}
+.editlink{background:none; border:0; color:var(--brand); font-size:14px; font-weight:700; cursor:pointer; min-height:38px; padding:4px 6px;}
+.flag{border-left:4px solid var(--red); background:#fdf3f1; border-radius:8px; padding:10px 12px; margin-bottom:8px;}
+.flag.warn{border-left-color:var(--accent); background:#fdf8ec;}
+.flag .t{font-weight:700;}
+.taxnote{background:#fdf8ec; border:1px solid #ecd9a8; border-radius:8px; padding:10px 12px; margin-bottom:10px; font-size:14px;}
+#toast{position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(20px); background:#20313a; color:#fff; padding:11px 18px; border-radius:24px; font-size:15px; font-weight:600; opacity:0; pointer-events:none; transition:all .25s; max-width:92vw; text-align:center; z-index:60;}
+#toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+#toast.err{background:var(--red);}
+.help-sec p{margin:6px 0;}
+.help-sec li{margin:4px 0;}
+footer.app{max-width:980px; margin:0 auto; padding:0 12px 30px; color:var(--muted); font-size:13px; text-align:center;}
+#printArea{display:none;}
+@media print{
+  header.app, nav.tabs, main, footer.app, #toast{display:none !important;}
+  #printArea{display:block; font-size:14px;}
+  #printArea h1{font-size:20px; margin-bottom:2px;}
+  #printArea h2{font-size:16px; margin:14px 0 6px;}
+  #printArea table{font-size:13px;}
+}
+@media (max-width:480px){
+  .stat .v{font-size:21px;}
+  th,td{padding:7px 4px; font-size:13.5px;}
+  header.app .brand{font-size:21px;}
+}
+</style>
+</head>
+<body>
+<header class="app">
+  <div class="brand">🌊 Host<span class="gold">Ledger</span></div>
+  <div class="tag">Bookkeeping &amp; profit tracker for Airbnb &amp; Vrbo hosts — no subscription, works offline</div>
+</header>
+<nav class="tabs" id="tabs"></nav>
+<main id="main"></main>
+<footer class="app">HostLedger runs 100% offline. Your data lives only in this browser on this device — export a backup from Settings regularly. Bookkeeping aid only, not tax advice.</footer>
+<div id="toast"></div>
+<div id="printArea"></div>
+
+<script>
+"use strict";
+/* ================================================================
+   HostLedger — single-file app. All data in localStorage.
+   Money rules (also stated in Help):
+   - Rental income = nightly total + cleaning fee charged.
+   - Lodging/occupancy taxes collected are pass-through money held
+     for the tax authority. They are NEVER counted as income.
+   - A booking counts toward the month/year of its check-in date.
+   - Cancelled bookings are kept for the record, excluded from
+     every income, payout and metrics total.
+   ================================================================ */
+var LS_KEY = 'hostledger_v1';
+var CHANNELS = ['Airbnb','Vrbo','Direct','Other'];
+var STATUSES = ['upcoming','completed','cancelled'];
+var EXPENSE_CATS = [
+  {id:'cleaning_maintenance', label:'Cleaning & maintenance', line:'7',  lineLabel:'Cleaning and maintenance'},
+  {id:'supplies',             label:'Supplies',               line:'15', lineLabel:'Supplies'},
+  {id:'utilities',            label:'Utilities',              line:'17', lineLabel:'Utilities'},
+  {id:'insurance',            label:'Insurance',              line:'9',  lineLabel:'Insurance'},
+  {id:'mortgage_interest',    label:'Mortgage interest',      line:'12', lineLabel:'Mortgage interest paid to banks'},
+  {id:'taxes_licenses',       label:'Property taxes & licenses', line:'16', lineLabel:'Taxes and licenses'},
+  {id:'repairs',              label:'Repairs',                line:'14', lineLabel:'Repairs'},
+  {id:'management_fees',      label:'Management fees',        line:'8',  lineLabel:'Commissions'},
+  {id:'platform_fees',        label:'Platform & other fees',  line:'19', lineLabel:'Other expenses'},
+  {id:'other',                label:'Other',                  line:'19', lineLabel:'Other expenses'}
+];
+
+/* ---------- small helpers ---------- */
+function pad2(n){ return (n<10?'0':'')+n; }
+function parseDate(s){
+  if(typeof s!=='string') return null;
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if(!m) return null;
+  var y=+m[1], mo=+m[2], d=+m[3];
+  if(mo<1||mo>12||d<1||d>31) return null;
+  var dt = new Date(Date.UTC(y, mo-1, d));
+  if(dt.getUTCFullYear()!==y || dt.getUTCMonth()!==mo-1 || dt.getUTCDate()!==d) return null;
+  return dt;
+}
+function isValidDateStr(s){ return !!parseDate(s); }
+function dateStr(d){ return d.getUTCFullYear()+'-'+pad2(d.getUTCMonth()+1)+'-'+pad2(d.getUTCDate()); }
+function todayStr(){ var n=new Date(); return n.getFullYear()+'-'+pad2(n.getMonth()+1)+'-'+pad2(n.getDate()); }
+function addDays(s, n){ var d=parseDate(s); if(!d) return s; d.setUTCDate(d.getUTCDate()+n); return dateStr(d); }
+function daysBetween(a, b){ var da=parseDate(a), db=parseDate(b); if(!da||!db) return 0; return Math.round((db-da)/86400000); }
+function monthKeyOf(s){ return (typeof s==='string' && s.length>=7) ? s.slice(0,7) : ''; }
+function yearOf(s){ return (typeof s==='string' && s.length>=4) ? s.slice(0,4) : ''; }
+var MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function monthLabel(mk){ var y=mk.slice(0,4), mo=parseInt(mk.slice(5,7),10); return (MONTH_NAMES[mo-1]||'')+' '+y; }
+function fmtDate(s){ if(!isValidDateStr(s)) return '—'; var p=s.split('-'); return (MONTH_NAMES[+p[1]-1]||'').slice(0,3)+' '+(+p[2])+', '+p[0]; }
+function num(x){ var n = (typeof x==='number')? x : parseFloat(x); return isFinite(n)? n : 0; }
+function round2(x){ return Math.round(num(x)*100)/100; }
+function money(x){ var v=round2(x); return (v<0?'-$':'$')+Math.abs(v).toFixed(2); }
+function pct(x){ if(!isFinite(x)) return '—'; return (x*100).toFixed(1)+'%'; }
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+var _uidSeq = 0;
+function uid(p){ _uidSeq++; return (p||'id')+'-'+Date.now().toString(36)+'-'+_uidSeq.toString(36)+Math.floor(Math.random()*1e6).toString(36); }
+function clampAmt(x){ var n = num(x); if(n<0) n=0; if(n>999999999) n=999999999; return round2(n); }
+function str(x, max){ return String(x==null?'':x).slice(0, max||200); }
+
+/* ---------- state ---------- */
+function blankSettings(){ return { hostName:'', businessName:'', email:'', phone:'' }; }
+function blankState(){ return { settings: blankSettings(), properties: [], bookings: [], expenses: [], cleanings: [], demoSeeded: false }; }
+
+function sanitizeProperty(r){
+  if(!r || typeof r!=='object') return null;
+  var af = isValidDateStr(r.activeFrom) ? r.activeFrom : '';
+  var at = isValidDateStr(r.activeTo) ? r.activeTo : '';
+  if(af && at && at < af) at = af;
+  return {
+    id: str(r.id, 80) || uid('prop'),
+    name: str(r.name, 120) || 'Unnamed property',
+    address: str(r.address, 200),
+    activeFrom: af,
+    activeTo: at,
+    defaultRate: clampAmt(r.defaultRate),
+    defaultCleaningFee: clampAmt(r.defaultCleaningFee),
+    defaultChannel: CHANNELS.indexOf(r.defaultChannel)>=0 ? r.defaultChannel : 'Airbnb',
+    depreciationAnnual: clampAmt(r.depreciationAnnual),
+    demo: !!r.demo
+  };
+}
+function sanitizeBooking(r){
+  if(!r || typeof r!=='object') return null;
+  if(!isValidDateStr(r.checkIn) || !isValidDateStr(r.checkOut)) return null;
+  if(daysBetween(r.checkIn, r.checkOut) <= 0) return null;
+  var guests = Math.floor(num(r.guests)); if(guests<1) guests=1; if(guests>99) guests=99;
+  var received = (r.payoutReceived===null || r.payoutReceived==='' || typeof r.payoutReceived==='undefined') ? null : clampAmt(r.payoutReceived);
+  return {
+    id: str(r.id, 80) || uid('bk'),
+    propertyId: str(r.propertyId, 80),
+    channel: CHANNELS.indexOf(r.channel)>=0 ? r.channel : 'Other',
+    guest: str(r.guest, 120),
+    checkIn: r.checkIn,
+    checkOut: r.checkOut,
+    guests: guests,
+    nightlyTotal: clampAmt(r.nightlyTotal),
+    cleaningFee: clampAmt(r.cleaningFee),
+    taxes: clampAmt(r.taxes),
+    platformFee: clampAmt(r.platformFee),
+    payoutExpected: clampAmt(r.payoutExpected),
+    payoutReceived: received,
+    payoutDate: isValidDateStr(r.payoutDate) ? r.payoutDate : '',
+    status: STATUSES.indexOf(r.status)>=0 ? r.status : 'upcoming',
+    note: str(r.note, 300),
+    demo: !!r.demo
+  };
+}
+function sanitizeExpense(r){
+  if(!r || typeof r!=='object') return null;
+  if(!isValidDateStr(r.date)) return null;
+  var cat = 'other';
+  for(var i=0;i<EXPENSE_CATS.length;i++) if(EXPENSE_CATS[i].id===r.category) cat = r.category;
+  return {
+    id: str(r.id, 80) || uid('exp'),
+    propertyId: str(r.propertyId, 80),
+    date: r.date,
+    category: cat,
+    amount: clampAmt(r.amount),
+    vendor: str(r.vendor, 120),
+    note: str(r.note, 300),
+    demo: !!r.demo
+  };
+}
+function sanitizeCleaning(r){
+  if(!r || typeof r!=='object') return null;
+  return {
+    id: str(r.id, 80) || uid('cl'),
+    bookingId: str(r.bookingId, 80),
+    date: isValidDateStr(r.date) ? r.date : '',
+    cost: clampAmt(r.cost),
+    cleaner: str(r.cleaner, 120),
+    done: !!r.done,
+    demo: !!r.demo
+  };
+}
+function sanitizeState(raw){
+  var st = blankState();
+  if(!raw || typeof raw!=='object') return st;
+  if(raw.settings && typeof raw.settings==='object'){
+    st.settings.hostName = str(raw.settings.hostName, 120);
+    st.settings.businessName = str(raw.settings.businessName, 120);
+    st.settings.email = str(raw.settings.email, 120);
+    st.settings.phone = str(raw.settings.phone, 60);
+  }
+  function arr(key){ return Array.isArray(raw[key]) ? raw[key] : []; }
+  st.properties = arr('properties').map(sanitizeProperty).filter(Boolean);
+  var propIds = {}; st.properties.forEach(function(p){ propIds[p.id]=true; });
+  st.bookings = arr('bookings').map(sanitizeBooking).filter(function(b){ return b && propIds[b.propertyId]; });
+  var bkIds = {}; st.bookings.forEach(function(b){ bkIds[b.id]=true; });
+  st.expenses = arr('expenses').map(sanitizeExpense).filter(function(e){ return e && propIds[e.propertyId]; });
+  st.cleanings = arr('cleanings').map(sanitizeCleaning).filter(function(c){ return c && bkIds[c.bookingId]; });
+  st.demoSeeded = !!raw.demoSeeded;
+  st.legal = (raw.legal && typeof raw.legal==='object') ? {termsVersion:String(raw.legal.termsVersion||''), acceptedDate:String(raw.legal.acceptedDate||''), disclaimerShown:!!raw.legal.disclaimerShown} : null;
+  return st;
+}
+
+var state = blankState();
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }catch(e){} }
+function load(){
+  var raw = null;
+  try{ raw = localStorage.getItem(LS_KEY); }catch(e){}
+  if(!raw){ state = blankState(); seedDemo(); save(); return; }
+  try{
+    state = sanitizeState(JSON.parse(raw));
+  }catch(e){
+    try{ localStorage.setItem(LS_KEY+'_corrupt_backup', raw); }catch(_){}
+    state = blankState(); seedDemo(); save();
+  }
+}
+
+/* ---------- lookups ---------- */
+function getProperty(id){ for(var i=0;i<state.properties.length;i++) if(state.properties[i].id===id) return state.properties[i]; return null; }
+function getBooking(id){ for(var i=0;i<state.bookings.length;i++) if(state.bookings[i].id===id) return state.bookings[i]; return null; }
+function catOf(id){ for(var i=0;i<EXPENSE_CATS.length;i++) if(EXPENSE_CATS[i].id===id) return EXPENSE_CATS[i]; return EXPENSE_CATS[EXPENSE_CATS.length-1]; }
+function bookingsOfProperty(pid){ return state.bookings.filter(function(b){ return b.propertyId===pid; }); }
+function cleaningsOfBooking(bid){ return state.cleanings.filter(function(c){ return c.bookingId===bid; }); }
+
+/* ---------- demo data (relative to today so it always looks alive) ---------- */
+function seedDemo(){
+  if(state.demoSeeded) return;
+  var t = todayStr();
+  var pid = uid('prop');
+  state.properties.push({
+    id: pid, name: 'Lake Escape — Grand Lake', address: 'Sample property (demo data)',
+    activeFrom: t.slice(0,4)+'-01-01', activeTo: '',
+    defaultRate: 145, defaultCleaningFee: 75, defaultChannel: 'Airbnb',
+    depreciationAnnual: 3200, demo: true
+  });
+  function bk(channel, guest, inOff, nights, nightly, cleaning, taxes, fee, expected, received, status){
+    var ci = addDays(t, inOff), co = addDays(ci, nights);
+    var b = {
+      id: uid('bk'), propertyId: pid, channel: channel, guest: guest,
+      checkIn: ci, checkOut: co, guests: 4,
+      nightlyTotal: nightly, cleaningFee: cleaning, taxes: taxes, platformFee: fee,
+      payoutExpected: expected, payoutReceived: received,
+      payoutDate: received===null ? '' : addDays(co, 2),
+      status: status, note: 'Demo booking', demo: true
+    };
+    state.bookings.push(b);
+    return b;
+  }
+  var b1 = bk('Airbnb','Demo Guest A', -43, 3, 435, 75, 52.20, 15.30, 494.70, 494.70, 'completed');
+  var b2 = bk('Vrbo','Demo Guest B', -20, 2, 320, 75, 39.50, 31.60, 363.40, 350.00, 'completed');
+  bk('Direct','Demo Guest C', 10, 4, 580, 75, 65.50, 0, 655, null, 'upcoming');
+  bk('Airbnb','Demo Guest D', -27, 2, 290, 75, 36.50, 10.95, 354.05, null, 'cancelled');
+  var b5 = bk('Airbnb','Demo Guest E', -10, 5, 725, 75, 80.00, 24.00, 776.00, 776.00, 'completed');
+  function cl(b, cost, cleaner){ state.cleanings.push({ id: uid('cl'), bookingId: b.id, date: b.checkOut, cost: cost, cleaner: cleaner, done: true, demo: true }); }
+  cl(b1, 60, 'Maria G.'); cl(b2, 60, 'Maria G.'); cl(b5, 85, 'Maria G.');
+  function exp(off, cat, amount, vendor, note){ state.expenses.push({ id: uid('exp'), propertyId: pid, date: addDays(t, off), category: cat, amount: amount, vendor: vendor, note: note, demo: true }); }
+  exp(-35, 'utilities', 128.40, 'Electric co-op', 'Demo expense');
+  exp(-30, 'insurance', 142.00, 'STR policy', 'Demo expense');
+  exp(-22, 'supplies', 46.75, 'Warehouse store', 'Linens & consumables (demo)');
+  exp(-15, 'cleaning_maintenance', 180.00, 'Deep Clean Co.', 'Quarterly deep clean (demo)');
+  exp(-8, 'repairs', 95.20, 'Hardware store', 'Deck board repair (demo)');
+  exp(-50, 'taxes_licenses', 150.00, 'County', 'STR license (demo)');
+  exp(-28, 'mortgage_interest', 612.35, 'Bank', 'Demo expense');
+  state.demoSeeded = true;
+}
+function hasDemo(){
+  return state.properties.some(function(p){ return p.demo; }) ||
+         state.bookings.some(function(b){ return b.demo; }) ||
+         state.expenses.some(function(e){ return e.demo; }) ||
+         state.cleanings.some(function(c){ return c.demo; });
+}
+function clearDemo(){
+  var demoBk = {}; state.bookings.forEach(function(b){ if(b.demo) demoBk[b.id]=true; });
+  state.cleanings = state.cleanings.filter(function(c){ return !c.demo && !demoBk[c.bookingId]; });
+  state.bookings = state.bookings.filter(function(b){ return !b.demo; });
+  state.expenses = state.expenses.filter(function(e){ return !e.demo; });
+  state.properties = state.properties.filter(function(p){ return !p.demo; });
+  state.demoSeeded = true; /* never reseed after a deliberate clear */
+  save();
+}
+
+/* ---------- booking math ---------- */
+function bookingNights(b){ return daysBetween(b.checkIn, b.checkOut); }
+function bookingGross(b){ return round2(b.nightlyTotal + b.cleaningFee + b.taxes); }        /* what the guest paid, incl. pass-through taxes */
+function bookingIncome(b){ return round2(b.nightlyTotal + b.cleaningFee); }                  /* rental income — taxes excluded, always */
+function suggestedPayout(b){ return round2(b.nightlyTotal + b.cleaningFee - b.platformFee); } /* taxes stay out: they are remitted, not earned */
+
+/* ---------- periods ---------- */
+/* period: {type:'year', year:'2026'} or {type:'all'} — bookings attribute to check-in year */
+function bookingInPeriod(b, period){
+  if(period.type==='all') return true;
+  return yearOf(b.checkIn) === period.year;
+}
+function expenseInPeriod(e, period){
+  if(period.type==='all') return true;
+  return yearOf(e.date) === period.year;
+}
+function availableNights(prop, period){
+  if(!prop.activeFrom) return 0;
+  var from = prop.activeFrom, to;
+  if(period.type==='year'){
+    var y0 = period.year+'-01-01', y1 = period.year+'-12-31';
+    if(from < y0) from = y0;
+    /* A property still hosting counts as available through the period end,
+       not just through today — the denominator is days in service. */
+    to = prop.activeTo ? (prop.activeTo < y1 ? prop.activeTo : y1) : y1;
+  } else {
+    to = prop.activeTo || todayStr();
+    state.bookings.forEach(function(b){
+      if(b.propertyId===prop.id && b.status!=='cancelled'){
+        var lastNight = addDays(b.checkOut, -1);
+        if(lastNight > to) to = lastNight;
+      }
+    });
+  }
+  if(to < from) return 0;
+  return daysBetween(from, to) + 1;
+}
+function yearsPresent(){
+  var set = {}; set[todayStr().slice(0,4)] = true;
+  state.bookings.forEach(function(b){ set[yearOf(b.checkIn)] = true; });
+  state.expenses.forEach(function(e){ set[yearOf(e.date)] = true; });
+  return Object.keys(set).sort();
+}
+
+/* ---------- metrics ---------- */
+function metricsFor(propId, period){ /* propId null = all properties combined */
+  var props = propId ? [getProperty(propId)].filter(Boolean) : state.properties.slice();
+  var m = {
+    bookings: 0, cancelled: 0, bookedNights: 0, availableNights: 0,
+    nightlyRevenue: 0, cleaningCharged: 0, grossRevenue: 0, platformFees: 0,
+    cleaningCost: 0, expensesTotal: 0, taxesHeld: 0
+  };
+  props.forEach(function(p){ m.availableNights += availableNights(p, period); });
+  var propSet = {}; props.forEach(function(p){ propSet[p.id]=true; });
+  state.bookings.forEach(function(b){
+    if(!propSet[b.propertyId] || !bookingInPeriod(b, period)) return;
+    if(b.status==='cancelled'){ m.cancelled++; return; }
+    m.bookings++;
+    m.bookedNights += bookingNights(b);
+    m.nightlyRevenue = round2(m.nightlyRevenue + b.nightlyTotal);
+    m.cleaningCharged = round2(m.cleaningCharged + b.cleaningFee);
+    m.platformFees = round2(m.platformFees + b.platformFee);
+    m.taxesHeld = round2(m.taxesHeld + b.taxes);
+    cleaningsOfBooking(b.id).forEach(function(c){ m.cleaningCost = round2(m.cleaningCost + c.cost); });
+  });
+  state.expenses.forEach(function(e){
+    if(!propSet[e.propertyId] || !expenseInPeriod(e, period)) return;
+    m.expensesTotal = round2(m.expensesTotal + e.amount);
+  });
+  m.grossRevenue = round2(m.nightlyRevenue + m.cleaningCharged);
+  m.cleaningMargin = round2(m.cleaningCharged - m.cleaningCost);
+  m.adr = m.bookedNights>0 ? round2(m.nightlyRevenue / m.bookedNights) : 0;
+  m.revpar = m.availableNights>0 ? round2(m.nightlyRevenue / m.availableNights) : 0;
+  m.occupancy = m.availableNights>0 ? (m.bookedNights / m.availableNights) : 0;
+  /* Cash net: depreciation deliberately excluded here (non-cash) — Schedule E view includes it. */
+  m.net = round2(m.grossRevenue - m.platformFees - m.expensesTotal - m.cleaningCost);
+  return m;
+}
+
+/* ---------- payouts ---------- */
+function payoutSummary(propId, period){
+  var s = { expected: 0, received: 0, variance: 0, recorded: 0, unrecorded: 0, rows: [] };
+  state.bookings.forEach(function(b){
+    if(b.status==='cancelled') return;
+    if(propId && b.propertyId!==propId) return;
+    if(period && !bookingInPeriod(b, period)) return;
+    s.rows.push(b);
+    s.expected = round2(s.expected + b.payoutExpected);
+    if(b.payoutReceived===null){ s.unrecorded++; }
+    else {
+      s.recorded++;
+      s.received = round2(s.received + b.payoutReceived);
+      s.variance = round2(s.variance + (b.payoutReceived - b.payoutExpected));
+    }
+  });
+  s.rows.sort(function(a,b){ return a.checkIn < b.checkIn ? -1 : 1; });
+  return s;
+}
+function payoutVariance(b){
+  if(b.payoutReceived===null) return null;
+  return round2(b.payoutReceived - b.payoutExpected);
+}
+function monthlyChannelPayouts(year){
+  var out = {}; /* monthKey -> {channel: {expected, received}} */
+  state.bookings.forEach(function(b){
+    if(b.status==='cancelled' || yearOf(b.checkIn)!==year) return;
+    var mk = monthKeyOf(b.checkIn);
+    if(!out[mk]) out[mk] = {};
+    if(!out[mk][b.channel]) out[mk][b.channel] = { expected: 0, received: 0 };
+    out[mk][b.channel].expected = round2(out[mk][b.channel].expected + b.payoutExpected);
+    if(b.payoutReceived!==null) out[mk][b.channel].received = round2(out[mk][b.channel].received + b.payoutReceived);
+  });
+  return out;
+}
+
+/* ---------- Schedule E ---------- */
+function scheduleEFor(prop, year){
+  var period = { type:'year', year: year };
+  var rents = 0, bookingFees = 0, turnoverCleaning = 0;
+  state.bookings.forEach(function(b){
+    if(b.propertyId!==prop.id || b.status==='cancelled' || !bookingInPeriod(b, period)) return;
+    rents = round2(rents + bookingIncome(b));
+    bookingFees = round2(bookingFees + b.platformFee);
+    cleaningsOfBooking(b.id).forEach(function(c){ turnoverCleaning = round2(turnoverCleaning + c.cost); });
+  });
+  var byCat = {};
+  EXPENSE_CATS.forEach(function(c){ byCat[c.id] = 0; });
+  state.expenses.forEach(function(e){
+    if(e.propertyId!==prop.id || !expenseInPeriod(e, period)) return;
+    byCat[e.category] = round2(byCat[e.category] + e.amount);
+  });
+  var rows = [];
+  EXPENSE_CATS.forEach(function(c){
+    var amt = byCat[c.id];
+    if(c.id==='platform_fees') amt = round2(amt + bookingFees);
+    if(amt!==0 || c.id==='cleaning_maintenance'){
+      var label = c.lineLabel;
+      if(c.id==='platform_fees' && bookingFees!==0) label = 'Other expenses (incl. booking platform fees)';
+      rows.push({ line: c.line, label: label, amount: amt });
+    }
+  });
+  if(turnoverCleaning!==0){
+    rows.push({ line: '7', label: 'Turnover cleaning (from Cleaning log)', amount: turnoverCleaning });
+  }
+  var activeInYear = availableNights(prop, period) > 0;
+  var depreciation = activeInYear ? prop.depreciationAnnual : 0;
+  if(depreciation!==0) rows.push({ line: '18', label: 'Depreciation (your entered annual figure)', amount: depreciation });
+  rows.sort(function(a,b){ return parseInt(a.line,10) - parseInt(b.line,10); });
+  var totalExp = 0; rows.forEach(function(r){ totalExp = round2(totalExp + r.amount); });
+  return { rents: rents, rows: rows, totalExpenses: totalExp, depreciation: depreciation, net: round2(rents - totalExp) };
+}
+
+/* ---------- UI shell ---------- */
+var TABS = [
+  { id:'dashboard', label:'Dashboard' },
+  { id:'properties', label:'Properties' },
+  { id:'bookings', label:'Bookings' },
+  { id:'payouts', label:'Payouts' },
+  { id:'cleanings', label:'Cleanings' },
+  { id:'expenses', label:'Expenses' },
+  { id:'schedulee', label:'Schedule E' },
+  { id:'settings', label:'Settings' },
+  { id:'help', label:'Help' }
+];
+var currentTab = 'dashboard';
+var ui = {
+  dashYear: 'all', dashProp: '',
+  bkProp: '', bkStatus: '', bkFormProp: '',
+  payYear: '', expYear: 'all', seYear: '',
+  editPropertyId: null, editBookingId: null, editExpenseId: null, editCleaningId: null
+};
+function $(id){ return document.getElementById(id); }
+var _toastTimer = null;
+function toast(msg, isErr){
+  var t = $('toast'); if(!t) return;
+  t.textContent = msg; t.className = 'show' + (isErr ? ' err' : '');
+  if(_toastTimer) clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(function(){ t.className = ''; }, 2600);
+}
+function go(tab){ currentTab = tab; render(); try{ window.scrollTo(0,0); }catch(e){} }
+function renderTabs(){
+  $('tabs').innerHTML = TABS.map(function(t){
+    return '<button data-tab="'+t.id+'" class="'+(currentTab===t.id?'active':'')+'">'+t.label+'</button>';
+  }).join('');
+  Array.prototype.forEach.call($('tabs').querySelectorAll('button'), function(b){
+    b.addEventListener('click', function(){ go(b.getAttribute('data-tab')); });
+  });
+}
+function render(){
+  renderTabs();
+  var v = { dashboard: viewDashboard, properties: viewProperties, bookings: viewBookings,
+            payouts: viewPayouts, cleanings: viewCleanings, expenses: viewExpenses,
+            schedulee: viewScheduleE, settings: viewSettings, help: viewHelp }[currentTab];
+  $('main').innerHTML = v();
+  bindView();
+}
+function periodFromYear(y){ return y==='all' ? { type:'all' } : { type:'year', year: y }; }
+function yearOptions(selected, includeAll){
+  var ys = yearsPresent();
+  var h = includeAll ? '<option value="all"'+(selected==='all'?' selected':'')+'>All time</option>' : '';
+  ys.forEach(function(y){ h += '<option value="'+y+'"'+(selected===y?' selected':'')+'>'+y+'</option>'; });
+  return h;
+}
+function propertyOptions(selected, includeAllLabel){
+  var h = includeAllLabel ? '<option value="">'+includeAllLabel+'</option>' : '';
+  state.properties.forEach(function(p){ h += '<option value="'+p.id+'"'+(selected===p.id?' selected':'')+'>'+esc(p.name)+'</option>'; });
+  return h;
+}
+function statusPill(b){
+  if(b.status==='cancelled') return '<span class="pill red">Cancelled</span>';
+  if(b.status==='upcoming') return '<span class="pill amber">Upcoming</span>';
+  return '<span class="pill green">Completed</span>';
+}
+function variancePill(b){
+  var v = payoutVariance(b);
+  if(v===null) return '<span class="pill amber">Not recorded</span>';
+  if(v===0) return '<span class="pill green">Match</span>';
+  if(v<0) return '<span class="pill red">Short '+money(-v)+'</span>';
+  return '<span class="pill green">Over '+money(v)+'</span>';
+}
+
+/* ---------- Dashboard ---------- */
+function viewDashboard(){
+  if(!ui.dashYear) ui.dashYear = 'all';
+  var period = periodFromYear(ui.dashYear);
+  var m = metricsFor(ui.dashProp || null, period);
+  var h = '<h2 class="view-title">Dashboard</h2>';
+  h += '<div class="card"><div class="row">'
+     + '<div><label>Period</label><select id="dashYearSel">'+yearOptions(ui.dashYear, true)+'</select></div>'
+     + '<div><label>Property</label><select id="dashPropSel">'+propertyOptions(ui.dashProp, 'All properties')+'</select></div>'
+     + '</div></div>';
+  if(state.properties.length===0){
+    h += '<div class="card empty">No properties yet. Add your first rental under the Properties tab — the demo property was cleared, so this book is empty and ready for your real numbers.</div>';
+    return h;
+  }
+  var s = payoutSummary(ui.dashProp || null, period);
+  if(s.unrecorded>0){
+    h += '<div class="flag warn"><span class="t">'+s.unrecorded+' payout'+(s.unrecorded===1?'':'s')+' not recorded yet.</span> Open the Payouts tab and enter what actually landed — that is how shortfalls get caught.</div>';
+  }
+  h += '<div class="grid">'
+    + '<div class="stat"><div class="k">Gross revenue</div><div class="v">'+money(m.grossRevenue)+'</div><div class="s">Nightly '+money(m.nightlyRevenue)+' + cleaning fees '+money(m.cleaningCharged)+'</div></div>'
+    + '<div class="stat"><div class="k">Net (cash)</div><div class="v">'+money(m.net)+'</div><div class="s">After platform fees, expenses &amp; cleaning costs. Excludes depreciation.</div></div>'
+    + '<div class="stat"><div class="k">Booked nights</div><div class="v">'+m.bookedNights+'</div><div class="s">of '+m.availableNights+' available · '+m.bookings+' bookings'+(m.cancelled?', '+m.cancelled+' cancelled':'')+'</div></div>'
+    + '<div class="stat"><div class="k">Occupancy</div><div class="v">'+pct(m.occupancy)+'</div><div class="s">Booked nights ÷ available nights</div></div>'
+    + '<div class="stat"><div class="k">Avg nightly rate (ADR)</div><div class="v">'+money(m.adr)+'</div><div class="s">Nightly revenue ÷ booked nights</div></div>'
+    + '<div class="stat"><div class="k">Revenue / avail. night</div><div class="v">'+money(m.revpar)+'</div><div class="s">Nightly revenue ÷ available nights</div></div>'
+    + '<div class="stat"><div class="k">Platform fees</div><div class="v">'+money(m.platformFees)+'</div><div class="s">Kept by Airbnb / Vrbo &amp; co.</div></div>'
+    + '<div class="stat"><div class="k">Cleaning margin</div><div class="v">'+money(m.cleaningMargin)+'</div><div class="s">Charged '+money(m.cleaningCharged)+' − paid out '+money(m.cleaningCost)+'</div></div>'
+    + '<div class="stat"><div class="k">Expenses</div><div class="v">'+money(m.expensesTotal)+'</div><div class="s">From the Expenses tab (excl. turnover cleaning)</div></div>'
+    + '<div class="stat"><div class="k">Taxes collected (held)</div><div class="v">'+money(m.taxesHeld)+'</div><div class="s">Pass-through lodging taxes — owed to the tax authority, never income</div></div>'
+    + '</div>';
+  /* per-property table when combined */
+  if(!ui.dashProp && state.properties.length>1){
+    h += '<h3>By property</h3><div class="card"><table><tr><th>Property</th><th class="num">Nights</th><th class="num">Occupancy</th><th class="num">Gross</th><th class="num">Net</th></tr>';
+    state.properties.forEach(function(p){
+      var pm = metricsFor(p.id, period);
+      h += '<tr><td>'+esc(p.name)+'</td><td class="num">'+pm.bookedNights+'</td><td class="num">'+pct(pm.occupancy)+'</td><td class="num">'+money(pm.grossRevenue)+'</td><td class="num">'+money(pm.net)+'</td></tr>';
+    });
+    h += '</table></div>';
+  }
+  /* upcoming */
+  var today = todayStr();
+  var upcoming = state.bookings.filter(function(b){ return b.status==='upcoming' && b.checkOut>=today; })
+    .sort(function(a,b){ return a.checkIn<b.checkIn?-1:1; }).slice(0,6);
+  if(upcoming.length){
+    h += '<h3>Coming up</h3><div class="card"><table><tr><th>Check-in</th><th>Property</th><th>Guest</th><th class="num">Nights</th><th class="num">Expected payout</th></tr>';
+    upcoming.forEach(function(b){
+      var p = getProperty(b.propertyId);
+      h += '<tr><td>'+fmtDate(b.checkIn)+'</td><td>'+esc(p?p.name:'')+'</td><td>'+esc(b.guest||'—')+'</td><td class="num">'+bookingNights(b)+'</td><td class="num">'+money(b.payoutExpected)+'</td></tr>';
+    });
+    h += '</table></div>';
+  }
+  return h;
+}
+
+/* ---------- Properties ---------- */
+function viewProperties(){
+  var ep = ui.editPropertyId ? getProperty(ui.editPropertyId) : null;
+  var h = '<h2 class="view-title">Properties</h2>';
+  h += '<div class="card"><h3 style="margin-top:0">'+(ep?'Edit property':'Add a property')+'</h3>'
+    + '<div class="row"><div><label>Property name *</label><input id="pfName" value="'+esc(ep?ep.name:'')+'" placeholder="e.g. Lake Escape"></div>'
+    + '<div><label>Address</label><input id="pfAddress" value="'+esc(ep?ep.address:'')+'"></div></div>'
+    + '<div class="row"><div><label>Active from</label><input id="pfFrom" type="date" value="'+esc(ep?ep.activeFrom:'')+'"></div>'
+    + '<div><label>Active until (blank = still hosting)</label><input id="pfTo" type="date" value="'+esc(ep?ep.activeTo:'')+'"></div></div>'
+    + '<div class="row"><div><label>Default nightly rate ($)</label><input inputmode="decimal" id="pfRate" type="number" step="0.01" min="0" value="'+(ep?ep.defaultRate:'')+'"></div>'
+    + '<div><label>Default cleaning fee charged ($)</label><input inputmode="decimal" id="pfCleaning" type="number" step="0.01" min="0" value="'+(ep?ep.defaultCleaningFee:'')+'"></div>'
+    + '<div><label>Default channel</label><select id="pfChannel">'+CHANNELS.map(function(c){ return '<option'+(ep&&ep.defaultChannel===c?' selected':'')+'>'+c+'</option>'; }).join('')+'</select></div></div>'
+    + '<div><label>Depreciation — annual amount ($)</label><input inputmode="decimal" id="pfDepr" type="number" step="0.01" min="0" value="'+(ep?ep.depreciationAnnual:'')+'">'
+    + '<div class="small mut">Enter the yearly depreciation figure your tax professional gives you. HostLedger never computes depreciation — it just carries your number onto the Schedule E summary.</div></div>'
+    + '<div style="margin-top:12px"><button class="btn" id="pfSave">'+(ep?'Save changes':'Add property')+'</button>'
+    + (ep?' <button class="btn ghost" id="pfCancel">Cancel edit</button>':'')+'</div></div>';
+  if(state.properties.length===0){
+    h += '<div class="card empty">No properties yet — add your first one above.</div>';
+    return h;
+  }
+  state.properties.forEach(function(p){
+    var all = metricsFor(p.id, { type:'all' });
+    h += '<div class="card"><div class="row" style="align-items:flex-start"><div style="flex:2 1 220px">'
+      + '<div style="font-size:18px;font-weight:800">'+esc(p.name)+(p.demo?' <span class="pill amber">demo</span>':'')+'</div>'
+      + '<div class="mut small">'+esc(p.address||'')+'</div>'
+      + '<div class="small">Active '+(p.activeFrom?fmtDate(p.activeFrom):'—')+' → '+(p.activeTo?fmtDate(p.activeTo):'ongoing')+' · Default '+money(p.defaultRate)+'/night · Cleaning fee '+money(p.defaultCleaningFee)+' · '+esc(p.defaultChannel)+'</div>'
+      + '<div class="small mut">All time: '+all.bookedNights+' nights booked · gross '+money(all.grossRevenue)+' · net '+money(all.net)+'</div>'
+      + '</div><div style="flex:0 0 auto"><button class="editlink" data-editprop="'+p.id+'">Edit</button>'
+      + '<button class="del" data-delprop="'+p.id+'" title="Delete property">🗑</button></div></div></div>';
+  });
+  return h;
+}
+
+/* ---------- Bookings ---------- */
+function bookingDefaults(prop){
+  if(!prop) return { rate: 0, cleaning: 0, channel: 'Airbnb' };
+  return { rate: prop.defaultRate, cleaning: prop.defaultCleaningFee, channel: prop.defaultChannel };
+}
+function viewBookings(){
+  var eb = ui.editBookingId ? getBooking(ui.editBookingId) : null;
+  var firstProp = state.properties[0] || null;
+  var formProp = eb ? getProperty(eb.propertyId) : (getProperty(ui.bkFormProp) || firstProp);
+  var dflt = bookingDefaults(formProp);
+  var h = '<h2 class="view-title">Bookings</h2>';
+  if(state.properties.length===0){
+    return h + '<div class="card empty">Add a property first — bookings hang off properties.</div>';
+  }
+  h += '<div class="card"><h3 style="margin-top:0">'+(eb?'Edit booking':'Add a booking')+'</h3>'
+    + '<div class="row"><div><label>Property *</label><select id="bfProp">'+propertyOptions(formProp?formProp.id:'', '')+'</select></div>'
+    + '<div><label>Channel</label><select id="bfChannel">'+CHANNELS.map(function(c){ return '<option'+((eb?eb.channel:dflt.channel)===c?' selected':'')+'>'+c+'</option>'; }).join('')+'</select></div>'
+    + '<div><label>Guest name</label><input id="bfGuest" value="'+esc(eb?eb.guest:'')+'"></div></div>'
+    + '<div class="row"><div><label>Check-in *</label><input id="bfIn" type="date" value="'+esc(eb?eb.checkIn:todayStr())+'"></div>'
+    + '<div><label>Check-out *</label><input id="bfOut" type="date" value="'+esc(eb?eb.checkOut:addDays(todayStr(),2))+'"></div>'
+    + '<div><label>Guests</label><input inputmode="decimal" id="bfGuests" type="number" step="1" min="1" value="'+(eb?eb.guests:2)+'"></div></div>'
+    + '<div class="small mut" id="bfNights"></div>'
+    + '<div class="row"><div><label>Nightly total ($) — all nights</label><input inputmode="decimal" id="bfNightly" type="number" step="0.01" min="0" value="'+(eb?eb.nightlyTotal:'')+'" placeholder="e.g. 3 nights × rate"></div>'
+    + '<div><label>Cleaning fee charged ($)</label><input inputmode="decimal" id="bfCleaning" type="number" step="0.01" min="0" value="'+(eb?eb.cleaningFee:dflt.cleaning)+'"></div>'
+    + '<div><label>Platform service fee ($)</label><input inputmode="decimal" id="bfFee" type="number" step="0.01" min="0" value="'+(eb?eb.platformFee:'')+'"></div></div>'
+    + '<div class="taxnote"><label style="margin-top:0">Lodging / occupancy taxes collected ($)</label><input inputmode="decimal" id="bfTaxes" type="number" step="0.01" min="0" value="'+(eb?eb.taxes:'')+'">'
+    + '<div class="small">Pass-through money you hold for the tax authority. It is <b>never</b> counted as income anywhere in HostLedger.</div></div>'
+    + '<div class="row"><div><label>Host payout expected ($)</label><input inputmode="decimal" id="bfExpected" type="number" step="0.01" min="0" value="'+(eb?eb.payoutExpected:'')+'">'
+    + '<button class="btn ghost small" id="bfSuggest" type="button" style="margin-top:6px">Suggest: nightly + cleaning − fee</button></div>'
+    + '<div><label>Payout received ($) — blank if not yet</label><input inputmode="decimal" id="bfReceived" type="number" step="0.01" min="0" value="'+(eb&&eb.payoutReceived!==null?eb.payoutReceived:'')+'"></div>'
+    + '<div><label>Payout date</label><input id="bfPayDate" type="date" value="'+esc(eb?eb.payoutDate:'')+'"></div></div>'
+    + '<div class="row"><div><label>Status</label><select id="bfStatus">'+STATUSES.map(function(s){ return '<option value="'+s+'"'+((eb?eb.status:'upcoming')===s?' selected':'')+'>'+s+'</option>'; }).join('')+'</select></div>'
+    + '<div><label>Note</label><input id="bfNote" value="'+esc(eb?eb.note:'')+'"></div></div>'
+    + '<div class="small mut" id="bfGross"></div>'
+    + '<div style="margin-top:12px"><button class="btn" id="bfSave">'+(eb?'Save changes':'Add booking')+'</button>'
+    + (eb?' <button class="btn ghost" id="bfCancel">Cancel edit</button>':'')+'</div></div>';
+  /* filters + table */
+  h += '<div class="card"><div class="row">'
+    + '<div><label>Filter: property</label><select id="bkPropSel">'+propertyOptions(ui.bkProp, 'All properties')+'</select></div>'
+    + '<div><label>Filter: status</label><select id="bkStatusSel"><option value="">All statuses</option>'
+    + STATUSES.map(function(s){ return '<option value="'+s+'"'+(ui.bkStatus===s?' selected':'')+'>'+s+'</option>'; }).join('')+'</select></div></div></div>';
+  var rows = state.bookings.filter(function(b){
+    return (!ui.bkProp || b.propertyId===ui.bkProp) && (!ui.bkStatus || b.status===ui.bkStatus);
+  }).sort(function(a,b){ return a.checkIn<b.checkIn?1:-1; });
+  if(rows.length===0){ h += '<div class="card empty">No bookings match. Add one above.</div>'; return h; }
+  h += '<div class="card"><table><tr><th>Stay</th><th>Guest / channel</th><th class="num">Nights</th><th class="num">Income</th><th class="num">Payout</th><th></th></tr>';
+  rows.forEach(function(b){
+    var p = getProperty(b.propertyId);
+    h += '<tr><td>'+fmtDate(b.checkIn)+' → '+fmtDate(b.checkOut)+'<br><span class="mut small">'+esc(p?p.name:'')+'</span></td>'
+      + '<td>'+esc(b.guest||'—')+'<br><span class="mut small">'+esc(b.channel)+'</span> '+statusPill(b)+'</td>'
+      + '<td class="num">'+bookingNights(b)+'</td>'
+      + '<td class="num">'+money(bookingIncome(b))+'<br><span class="mut small">guest paid '+money(bookingGross(b))+' incl. '+money(b.taxes)+' tax held</span></td>'
+      + '<td class="num">'+(b.payoutReceived===null?money(b.payoutExpected)+' exp.':money(b.payoutReceived))+'<br>'+variancePill(b)+'</td>'
+      + '<td><button class="editlink" data-editbk="'+b.id+'">Edit</button><button class="del" data-delbk="'+b.id+'" title="Delete booking">🗑</button></td></tr>';
+  });
+  h += '</table></div>';
+  return h;
+}
+
+/* ---------- Payouts ---------- */
+function viewPayouts(){
+  if(!ui.payYear) ui.payYear = todayStr().slice(0,4);
+  var period = periodFromYear(ui.payYear);
+  var s = payoutSummary(null, period);
+  var h = '<h2 class="view-title">Payout reconciliation</h2>';
+  h += '<div class="card"><div class="row"><div><label>Bookings checking in</label><select id="payYearSel">'+yearOptions(ui.payYear, true)+'</select></div></div>'
+    + '<div class="small mut">Expected = what the platform said you would get. Received = what actually landed. Variance is only figured over bookings whose received amount you have entered.</div></div>';
+  h += '<div class="grid">'
+    + '<div class="stat"><div class="k">Expected</div><div class="v">'+money(s.expected)+'</div></div>'
+    + '<div class="stat"><div class="k">Received (recorded)</div><div class="v">'+money(s.received)+'</div><div class="s">'+s.recorded+' of '+(s.recorded+s.unrecorded)+' payouts entered</div></div>'
+    + '<div class="stat"><div class="k">Variance</div><div class="v">'+money(s.variance)+'</div><div class="s">'+(s.variance<0?'<span class="bad">You were paid less than expected</span>':(s.variance>0?'More than expected':'No recorded shortfalls'))+'</div></div>'
+    + '</div>';
+  if(s.rows.length===0){
+    h += '<div class="card empty">No non-cancelled bookings in this period.</div>';
+  } else {
+    h += '<div class="card"><table><tr><th>Stay</th><th>Channel</th><th class="num">Expected</th><th class="num">Received</th><th>Status</th><th></th></tr>';
+    s.rows.forEach(function(b){
+      var p = getProperty(b.propertyId);
+      h += '<tr><td>'+fmtDate(b.checkIn)+'<br><span class="mut small">'+esc(p?p.name:'')+' · '+esc(b.guest||'')+'</span></td>'
+        + '<td>'+esc(b.channel)+'</td>'
+        + '<td class="num">'+money(b.payoutExpected)+'</td>'
+        + '<td class="num"><input inputmode="decimal" type="number" step="0.01" min="0" style="min-height:38px;max-width:130px" id="rcv-'+b.id+'" value="'+(b.payoutReceived===null?'':b.payoutReceived)+'" placeholder="not yet"></td>'
+        + '<td>'+variancePill(b)+'</td>'
+        + '<td><button class="btn ghost small" data-savepay="'+b.id+'">Save</button></td></tr>';
+    });
+    h += '</table></div>';
+  }
+  if(ui.payYear!=='all'){
+    var mc = monthlyChannelPayouts(ui.payYear);
+    var mks = Object.keys(mc).sort();
+    if(mks.length){
+      h += '<h3>Monthly payouts by channel — '+esc(ui.payYear)+'</h3><div class="card"><table><tr><th>Month</th>'
+        + CHANNELS.map(function(c){ return '<th class="num">'+c+'</th>'; }).join('') + '<th class="num">Total received</th></tr>';
+      mks.forEach(function(mk){
+        var tot = 0;
+        h += '<tr><td>'+monthLabel(mk)+'</td>';
+        CHANNELS.forEach(function(c){
+          var cell = mc[mk][c];
+          var v = cell ? cell.received : 0;
+          tot = round2(tot + v);
+          h += '<td class="num">'+(cell?money(v):'—')+'</td>';
+        });
+        h += '<td class="num"><b>'+money(tot)+'</b></td></tr>';
+      });
+      h += '</table><div class="small mut">Received amounts, grouped by the month the booking checked in.</div></div>';
+    }
+  }
+  return h;
+}
+
+/* ---------- Cleanings ---------- */
+function viewCleanings(){
+  var ec = ui.editCleaningId ? state.cleanings.filter(function(c){ return c.id===ui.editCleaningId; })[0] : null;
+  var h = '<h2 class="view-title">Turnover cleanings</h2>';
+  var bookable = state.bookings.filter(function(b){ return b.status!=='cancelled'; })
+    .sort(function(a,b){ return a.checkIn<b.checkIn?1:-1; });
+  h += '<div class="card"><h3 style="margin-top:0">'+(ec?'Edit cleaning':'Log a cleaning')+'</h3>';
+  if(bookable.length===0){
+    h += '<div class="empty">No bookings yet — cleanings attach to a booking, so add a booking first.</div>';
+  } else {
+    h += '<div class="row"><div style="flex:2 1 220px"><label>Booking *</label><select id="cfBooking">'
+      + bookable.map(function(b){
+          var p = getProperty(b.propertyId);
+          return '<option value="'+b.id+'"'+(ec&&ec.bookingId===b.id?' selected':'')+'>'+esc((p?p.name:'')+' · '+fmtDate(b.checkIn)+' · '+(b.guest||'guest'))+'</option>';
+        }).join('')+'</select></div>'
+      + '<div><label>Date</label><input id="cfDate" type="date" value="'+esc(ec?ec.date:'')+'"></div></div>'
+      + '<div class="row"><div><label>Cost paid ($)</label><input inputmode="decimal" id="cfCost" type="number" step="0.01" min="0" value="'+(ec?ec.cost:'')+'"></div>'
+      + '<div><label>Cleaner</label><input id="cfCleaner" value="'+esc(ec?ec.cleaner:'')+'"></div>'
+      + '<div><label>Done?</label><select id="cfDone"><option value="1"'+(ec&&ec.done?' selected':'')+'>Done</option><option value="0"'+(ec&&!ec.done?' selected':'')+'>Scheduled</option></select></div></div>'
+      + '<div style="margin-top:12px"><button class="btn" id="cfSave">'+(ec?'Save changes':'Log cleaning')+'</button>'
+      + (ec?' <button class="btn ghost" id="cfCancel">Cancel edit</button>':'')+'</div>';
+  }
+  h += '</div>';
+  if(state.cleanings.length===0){
+    h += '<div class="card empty">No cleanings logged yet. Log them here — not in Expenses — so the charged-vs-paid cleaning margin stays honest and nothing gets counted twice.</div>';
+    return h;
+  }
+  var totCharged = 0, totCost = 0;
+  h += '<div class="card"><table><tr><th>Stay</th><th>Cleaner</th><th class="num">Fee charged</th><th class="num">Cost paid</th><th class="num">Margin</th><th></th></tr>';
+  var sorted = state.cleanings.slice().sort(function(a,b){
+    var ba = getBooking(a.bookingId), bb = getBooking(b.bookingId);
+    return (ba?ba.checkIn:'') < (bb?bb.checkIn:'') ? 1 : -1;
+  });
+  sorted.forEach(function(c){
+    var b = getBooking(c.bookingId); if(!b) return;
+    var p = getProperty(b.propertyId);
+    totCharged = round2(totCharged + b.cleaningFee);
+    totCost = round2(totCost + c.cost);
+    h += '<tr><td>'+fmtDate(b.checkIn)+' → '+fmtDate(b.checkOut)+'<br><span class="mut small">'+esc(p?p.name:'')+' · '+esc(b.guest||'')+'</span></td>'
+      + '<td>'+esc(c.cleaner||'—')+'<br><span class="pill '+(c.done?'green':'amber')+'">'+(c.done?'Done':'Scheduled')+'</span></td>'
+      + '<td class="num">'+money(b.cleaningFee)+'</td>'
+      + '<td class="num">'+money(c.cost)+'</td>'
+      + '<td class="num">'+money(round2(b.cleaningFee - c.cost))+'</td>'
+      + '<td><button class="editlink" data-editcl="'+c.id+'">Edit</button><button class="del" data-delcl="'+c.id+'" title="Delete cleaning">🗑</button></td></tr>';
+  });
+  h += '<tr class="tot"><td colspan="2">Totals (rows above)</td><td class="num">'+money(totCharged)+'</td><td class="num">'+money(totCost)+'</td><td class="num">'+money(round2(totCharged-totCost))+'</td><td></td></tr>';
+  h += '</table><div class="small mut">If a booking has more than one cleaning logged, its charged fee appears on each row — use the Dashboard cleaning margin for the true property total.</div></div>';
+  return h;
+}
+
+/* ---------- Expenses ---------- */
+function viewExpenses(){
+  var ee = ui.editExpenseId ? state.expenses.filter(function(e){ return e.id===ui.editExpenseId; })[0] : null;
+  var h = '<h2 class="view-title">Expenses</h2>';
+  if(state.properties.length===0){
+    return h + '<div class="card empty">Add a property first — expenses hang off properties.</div>';
+  }
+  h += '<div class="card"><h3 style="margin-top:0">'+(ee?'Edit expense':'Add an expense')+'</h3>'
+    + '<div class="row"><div><label>Property *</label><select id="efProp">'+propertyOptions(ee?ee.propertyId:(state.properties[0]?state.properties[0].id:''), '')+'</select></div>'
+    + '<div><label>Date *</label><input id="efDate" type="date" value="'+esc(ee?ee.date:todayStr())+'"></div>'
+    + '<div><label>Category (Schedule E line)</label><select id="efCat">'
+    + EXPENSE_CATS.map(function(c){ return '<option value="'+c.id+'"'+(ee&&ee.category===c.id?' selected':'')+'>'+c.label+' — Line '+c.line+'</option>'; }).join('')+'</select></div></div>'
+    + '<div class="row"><div><label>Amount ($) *</label><input inputmode="decimal" id="efAmt" type="number" step="0.01" min="0" value="'+(ee?ee.amount:'')+'"></div>'
+    + '<div><label>Vendor / payee</label><input id="efVendor" value="'+esc(ee?ee.vendor:'')+'"></div>'
+    + '<div><label>Note</label><input id="efNote" value="'+esc(ee?ee.note:'')+'"></div></div>'
+    + '<div style="margin-top:12px"><button class="btn" id="efSave">'+(ee?'Save changes':'Add expense')+'</button>'
+    + (ee?' <button class="btn ghost" id="efCancel">Cancel edit</button>':'')+'</div>'
+    + '<div class="small mut" style="margin-top:8px">Turnover cleanings between guests belong in the Cleanings tab, not here — logging them in both places would double-count them.</div></div>';
+  h += '<div class="card"><div class="row"><div><label>Show</label><select id="expYearSel">'+yearOptions(ui.expYear, true)+'</select></div></div></div>';
+  var period = periodFromYear(ui.expYear);
+  var rows = state.expenses.filter(function(e){ return expenseInPeriod(e, period); })
+    .sort(function(a,b){ return a.date<b.date?1:-1; });
+  if(rows.length===0){ h += '<div class="card empty">No expenses in this period.</div>'; return h; }
+  var tot = 0;
+  h += '<div class="card"><table><tr><th>Date</th><th>Property</th><th>Category</th><th>Vendor</th><th class="num">Amount</th><th></th></tr>';
+  rows.forEach(function(e){
+    var p = getProperty(e.propertyId);
+    tot = round2(tot + e.amount);
+    h += '<tr><td>'+fmtDate(e.date)+'</td><td>'+esc(p?p.name:'')+'</td><td>'+esc(catOf(e.category).label)+'<br><span class="mut small">Schedule E line '+catOf(e.category).line+'</span></td>'
+      + '<td>'+esc(e.vendor||'—')+(e.note?'<br><span class="mut small">'+esc(e.note)+'</span>':'')+'</td>'
+      + '<td class="num">'+money(e.amount)+'</td>'
+      + '<td><button class="editlink" data-editexp="'+e.id+'">Edit</button><button class="del" data-delexp="'+e.id+'" title="Delete expense">🗑</button></td></tr>';
+  });
+  h += '<tr class="tot"><td colspan="4">Total</td><td class="num">'+money(tot)+'</td><td></td></tr></table></div>';
+  return h;
+}
+
+/* ---------- Schedule E ---------- */
+function scheduleEHTML(year){
+  var h = '';
+  var grand = { rents: 0, totalExpenses: 0, net: 0 };
+  state.properties.forEach(function(p){
+    var se = scheduleEFor(p, year);
+    grand.rents = round2(grand.rents + se.rents);
+    grand.totalExpenses = round2(grand.totalExpenses + se.totalExpenses);
+    grand.net = round2(grand.net + se.net);
+    h += '<h3>'+esc(p.name)+'</h3><table>'
+      + '<tr><td>Line 3 — Rents received (nightly + cleaning fees; taxes excluded)</td><td class="num">'+money(se.rents)+'</td></tr>';
+    se.rows.forEach(function(r){
+      h += '<tr><td>Line '+r.line+' — '+esc(r.label)+'</td><td class="num">'+money(r.amount)+'</td></tr>';
+    });
+    h += '<tr class="tot"><td>Total expenses</td><td class="num">'+money(se.totalExpenses)+'</td></tr>'
+      + '<tr class="tot"><td>Net (rents − expenses)</td><td class="num">'+money(se.net)+'</td></tr></table>';
+  });
+  if(state.properties.length>1){
+    h += '<h3>All properties combined</h3><table>'
+      + '<tr><td>Line 3 — Rents received</td><td class="num">'+money(grand.rents)+'</td></tr>'
+      + '<tr class="tot"><td>Total expenses</td><td class="num">'+money(grand.totalExpenses)+'</td></tr>'
+      + '<tr class="tot"><td>Net</td><td class="num">'+money(grand.net)+'</td></tr></table>';
+  }
+  return h;
+}
+function viewScheduleE(){
+  if(!ui.seYear) ui.seYear = todayStr().slice(0,4);
+  var h = '<h2 class="view-title">Schedule E summary</h2>';
+  h += '<div class="taxnote"><b>Organizing summary, not a tax return.</b> Rents and expenses are grouped by IRS Schedule E line, per property, ready to hand to your tax preparer. Lodging taxes you collected are pass-through money and are <b>not</b> in these rents. Depreciation uses only the annual figure you entered on each property — HostLedger does not compute it. Short-term rentals have extra rules (material participation, the 7-day rule, local lodging taxes); your preparer earns their fee here.</div>';
+  h += '<div class="card"><div class="row"><div><label>Tax year</label><select id="seYearSel">'+yearOptions(ui.seYear, false)+'</select></div>'
+    + '<div><label>&nbsp;</label><button class="btn" id="sePrint">Print summary</button></div></div></div>';
+  if(state.properties.length===0){
+    h += '<div class="card empty">No properties yet.</div>';
+    return h;
+  }
+  h += '<div class="card">'+scheduleEHTML(ui.seYear)+'</div>';
+  return h;
+}
+
+/* ---------- Settings ---------- */
+function viewSettings(){
+  var s = state.settings;
+  var h = '<h2 class="view-title">Settings &amp; backup</h2>';
+  h += '<div class="card"><h3 style="margin-top:0">Host info (prints on the Schedule E summary)</h3>'
+    + '<div class="row"><div><label>Your name</label><input id="sfHost" value="'+esc(s.hostName)+'"></div>'
+    + '<div><label>Business name</label><input id="sfBiz" value="'+esc(s.businessName)+'"></div></div>'
+    + '<div class="row"><div><label>Email</label><input id="sfEmail" value="'+esc(s.email)+'"></div>'
+    + '<div><label>Phone</label><input id="sfPhone" value="'+esc(s.phone)+'"></div></div>'
+    + '<div style="margin-top:12px"><button class="btn" id="sfSave">Save settings</button></div></div>';
+  h += '<div class="card"><h3 style="margin-top:0">Backup / restore</h3>'
+    + '<p class="small mut">Everything lives in this browser on this device. Export a backup file regularly — it is the only copy. Importing a backup <b>replaces</b> everything currently in the app.</p>'
+    + '<div class="row"><div><button class="btn" id="btnExport">Export backup</button></div>'
+    + '<div><label style="margin-top:0">Import from file</label><input type="file" id="importFile" accept=".json,application/json"></div></div>'
+    + '<label>Backup text</label><textarea id="backupText" placeholder="Export fills this in; or paste a backup here and import it"></textarea>'
+    + '<div style="margin-top:10px"><button class="btn ghost" id="btnImportText">Import pasted backup</button></div></div>';
+  h += '<div class="card"><h3 style="margin-top:0">Sample data &amp; erase</h3>'
+    + '<div class="row"><div><button class="btn ghost" id="btnClearDemo" '+(hasDemo()?'':'disabled')+'>Clear sample data only</button></div>'
+    + '<div><button class="btn danger" id="btnEraseAll">Erase EVERYTHING</button></div></div>'
+    + '<p class="small mut">Clearing samples removes only the demo property, bookings, cleanings and expenses — your real records stay. Erase cannot be undone; export a backup first if there is anything you want.</p></div>';
+  h += '<div class="card"><h3 style="margin-top:0">Legal</h3><p>Terms of Use, the applicable disclaimer, our privacy statement, and your recorded acceptance.</p><button type="button" class="btn ww-legal-open-btn" data-ww-legal="1">⚖️ Legal — Terms, Disclaimer &amp; Privacy</button></div>';
+  return h;
+}
+
+/* ---------- Help ---------- */
+function viewHelp(){
+  return '<h2 class="view-title">Help — how HostLedger thinks</h2><div class="card help-sec">'
+  + '<h3>The one rule that matters most</h3>'
+  + '<p><b>Lodging / occupancy taxes you collect are not your money.</b> They are pass-through funds you hold for the tax authority, so HostLedger never counts them as income — not on the dashboard, not in payouts, not on the Schedule E summary. The guest total (nightly + cleaning fee + taxes) is shown on each booking only so you can match it against the platform statement.</p>'
+  + '<h3>The formulas</h3><ul>'
+  + '<li><b>Nights</b> = check-out date − check-in date.</li>'
+  + '<li><b>Rental income</b> (per booking) = nightly total + cleaning fee charged. Taxes excluded, always.</li>'
+  + '<li><b>Gross revenue</b> = sum of rental income over non-cancelled bookings in the period.</li>'
+  + '<li><b>Occupancy</b> = booked nights ÷ available nights. Available nights are the days in the period when the property was active (between its Active from / Active until dates).</li>'
+  + '<li><b>ADR</b> (average nightly rate) = nightly revenue ÷ booked nights. Cleaning fees are not in ADR.</li>'
+  + '<li><b>Revenue per available night</b> = nightly revenue ÷ available nights.</li>'
+  + '<li><b>Cleaning margin</b> = cleaning fees charged − cleaning costs paid (Cleanings tab).</li>'
+  + '<li><b>Dashboard net (cash)</b> = gross revenue − platform fees − expenses − turnover cleaning costs. Depreciation is left out on purpose: it is not cash. The Schedule E net includes it.</li>'
+  + '<li><b>Payout variance</b> = received − expected, figured only over bookings where you entered a received amount.</li></ul>'
+  + '<h3>Counting conventions</h3>'
+  + '<p>A booking counts toward the <b>month and year it checks in</b> — a stay that starts Dec 30 and runs into January is a December booking here. Cancelled bookings stay on the record but are excluded from every total. Turnover cleanings belong in the Cleanings tab only; if you also log one as an expense, you will count it twice.</p>'
+  + '<h3>Payouts</h3>'
+  + '<p>The “Suggest” button on the booking form fills the expected payout as nightly + cleaning − platform fee — what most platforms pay when taxes are remitted separately. If your platform hands you the taxes to remit yourself, type the expected amount yourself and remember that tax slice is still not income.</p>'
+  + '<h3>Taxes &amp; Schedule E</h3>'
+  + '<p>The Schedule E view groups your rents and expenses by the form line your preparer will use. Depreciation is <b>your</b> number: each property carries an annual depreciation amount you enter (ask your tax professional), and the app never calculates it. This app is a bookkeeping aid, not tax advice — short-term rentals have special rules, and local lodging-tax filings are separate from your income tax.</p>'
+  + '<h3>Your data</h3>'
+  + '<p>Everything is stored in this browser on this device only. There is no account, no sync, and no platform connection — manual entry is the design, so your books work at the lake house with no signal. Export backups from Settings and keep the file somewhere safe; clearing your browser site data erases the in-app copy.</p>'
+  + '</div>';
+}
+
+/* ---------- print & backup ---------- */
+function printHTML(html){
+  $('printArea').innerHTML = html;
+  window.print();
+}
+function ownerHeader(sub){
+  var s = state.settings;
+  var name = s.businessName || s.hostName || 'HostLedger';
+  return '<h1>'+esc(name)+'</h1><div>'+esc(sub)+'</div>'
+    + (s.hostName && s.businessName ? '<div>'+esc(s.hostName)+'</div>' : '')
+    + '<div>Generated '+fmtDate(todayStr())+' · HostLedger</div>';
+}
+function printScheduleE(){
+  printHTML(ownerHeader('Schedule E summary — tax year '+ui.seYear)
+    + scheduleEHTML(ui.seYear)
+    + '<p style="font-size:12px">Organizing summary prepared from the host records in HostLedger. Not a tax return and not tax advice. Lodging taxes collected are pass-through funds and are excluded from rents. Depreciation is the annual figure entered by the host.</p>');
+}
+function exportText(){
+  return JSON.stringify({ app:'hostledger', version:1, exported: todayStr(), data: state }, null, 2);
+}
+function importFromText(text){
+  var parsed;
+  try{ parsed = JSON.parse(text); }
+  catch(e){ toast('That backup does not parse — nothing was changed.', true); return false; }
+  if(!parsed || parsed.app!=='hostledger' || !parsed.data || typeof parsed.data!=='object'){
+    toast('That is not a HostLedger backup — nothing was changed.', true); return false;
+  }
+  state = sanitizeState(parsed.data);
+  ui.editPropertyId = ui.editBookingId = ui.editExpenseId = ui.editCleaningId = null;
+  save(); render();
+  toast('Backup imported.');
+  return true;
+}
+
+/* ---------- event binding (re-run after every render) ---------- */
+function on(id, ev, fn){ var el = $(id); if(el) el.addEventListener(ev, fn); }
+function bindView(){
+  /* dashboard */
+  on('dashYearSel', 'change', function(){ ui.dashYear = this.value; render(); });
+  on('dashPropSel', 'change', function(){ ui.dashProp = this.value; render(); });
+  /* properties */
+  on('pfSave', 'click', function(){
+    var name = $('pfName').value.trim();
+    if(!name){ toast('Give the property a name.', true); return; }
+    var from = $('pfFrom').value, to = $('pfTo').value;
+    if(from && !isValidDateStr(from)){ toast('Active-from date is not valid.', true); return; }
+    if(to && !isValidDateStr(to)){ toast('Active-until date is not valid.', true); return; }
+    if(from && to && to < from){ toast('Active-until cannot be before active-from.', true); return; }
+    var data = {
+      name: name, address: $('pfAddress').value.trim(),
+      activeFrom: from || '', activeTo: to || '',
+      defaultRate: clampAmt($('pfRate').value), defaultCleaningFee: clampAmt($('pfCleaning').value),
+      defaultChannel: $('pfChannel').value, depreciationAnnual: clampAmt($('pfDepr').value)
+    };
+    if(ui.editPropertyId){
+      var p = getProperty(ui.editPropertyId); if(!p) return;
+      for(var k in data) p[k] = data[k];
+      ui.editPropertyId = null; toast('Property saved.');
+    } else {
+      data.id = uid('prop'); data.demo = false;
+      state.properties.push(data); toast('Property added.');
+    }
+    save(); render();
+  });
+  on('pfCancel', 'click', function(){ ui.editPropertyId = null; render(); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-editprop]'), function(b){
+    b.addEventListener('click', function(){ ui.editPropertyId = b.getAttribute('data-editprop'); render(); try{ window.scrollTo(0,0); }catch(e){} });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-delprop]'), function(b){
+    b.addEventListener('click', function(){
+      var p = getProperty(b.getAttribute('data-delprop')); if(!p) return;
+      if(!confirm('Delete property "'+p.name+'" and ALL its bookings, cleanings and expenses? This cannot be undone.')) return;
+      var pid = p.id;
+      var bkIds = {}; state.bookings.forEach(function(x){ if(x.propertyId===pid) bkIds[x.id]=true; });
+      state.cleanings = state.cleanings.filter(function(c){ return !bkIds[c.bookingId]; });
+      state.bookings = state.bookings.filter(function(x){ return x.propertyId!==pid; });
+      state.expenses = state.expenses.filter(function(x){ return x.propertyId!==pid; });
+      state.properties = state.properties.filter(function(x){ return x.id!==pid; });
+      if(ui.dashProp===pid) ui.dashProp = '';
+      save(); render(); toast('Property deleted.');
+    });
+  });
+  /* bookings */
+  on('bfProp', 'change', function(){
+    if(!ui.editBookingId){ ui.bkFormProp = this.value; render(); }
+  });
+  function bfPreview(){
+    var ci = $('bfIn') ? $('bfIn').value : '', co = $('bfOut') ? $('bfOut').value : '';
+    var n = (isValidDateStr(ci) && isValidDateStr(co)) ? daysBetween(ci, co) : 0;
+    if($('bfNights')) $('bfNights').textContent = n>0 ? ('That stay is '+n+' night'+(n===1?'':'s')+'.') : 'Check-out must be after check-in.';
+    if($('bfGross')){
+      var nightly = num($('bfNightly').value), cleaning = num($('bfCleaning').value), taxes = num($('bfTaxes').value);
+      $('bfGross').textContent = 'Guest pays '+money(round2(nightly+cleaning+taxes))+' in total (including '+money(taxes)+' of taxes held). Your income from this booking: '+money(round2(nightly+cleaning))+'.';
+    }
+  }
+  ['bfIn','bfOut','bfNightly','bfCleaning','bfTaxes'].forEach(function(id){ on(id, 'input', bfPreview); on(id, 'change', bfPreview); });
+  if($('bfIn')) bfPreview();
+  on('bfSuggest', 'click', function(){
+    $('bfExpected').value = round2(num($('bfNightly').value) + num($('bfCleaning').value) - num($('bfFee').value));
+    toast('Expected payout filled in — adjust if your platform counts it differently.');
+  });
+  on('bfSave', 'click', function(){
+    var pid = $('bfProp').value;
+    if(!getProperty(pid)){ toast('Pick a property.', true); return; }
+    var ci = $('bfIn').value, co = $('bfOut').value;
+    if(!isValidDateStr(ci) || !isValidDateStr(co)){ toast('Both stay dates must be valid.', true); return; }
+    if(daysBetween(ci, co) <= 0){ toast('Check-out must be after check-in.', true); return; }
+    var rcvRaw = $('bfReceived').value;
+    var data = {
+      propertyId: pid, channel: $('bfChannel').value, guest: $('bfGuest').value.trim(),
+      checkIn: ci, checkOut: co,
+      guests: Math.max(1, Math.floor(num($('bfGuests').value)) || 1),
+      nightlyTotal: clampAmt($('bfNightly').value), cleaningFee: clampAmt($('bfCleaning').value),
+      taxes: clampAmt($('bfTaxes').value), platformFee: clampAmt($('bfFee').value),
+      payoutExpected: clampAmt($('bfExpected').value),
+      payoutReceived: (rcvRaw==='' ? null : clampAmt(rcvRaw)),
+      payoutDate: isValidDateStr($('bfPayDate').value) ? $('bfPayDate').value : '',
+      status: $('bfStatus').value, note: $('bfNote').value.trim()
+    };
+    if(ui.editBookingId){
+      var b = getBooking(ui.editBookingId); if(!b) return;
+      for(var k in data) b[k] = data[k];
+      ui.editBookingId = null; toast('Booking saved.');
+    } else {
+      data.id = uid('bk'); data.demo = false;
+      state.bookings.push(data); toast('Booking added.');
+    }
+    save(); render();
+  });
+  on('bfCancel', 'click', function(){ ui.editBookingId = null; render(); });
+  on('bkPropSel', 'change', function(){ ui.bkProp = this.value; render(); });
+  on('bkStatusSel', 'change', function(){ ui.bkStatus = this.value; render(); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-editbk]'), function(b){
+    b.addEventListener('click', function(){ ui.editBookingId = b.getAttribute('data-editbk'); render(); try{ window.scrollTo(0,0); }catch(e){} });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-delbk]'), function(b){
+    b.addEventListener('click', function(){
+      var bk = getBooking(b.getAttribute('data-delbk')); if(!bk) return;
+      if(!confirm('Delete this booking (and its cleaning records)? This cannot be undone.')) return;
+      state.cleanings = state.cleanings.filter(function(c){ return c.bookingId!==bk.id; });
+      state.bookings = state.bookings.filter(function(x){ return x.id!==bk.id; });
+      save(); render(); toast('Booking deleted.');
+    });
+  });
+  /* payouts */
+  on('payYearSel', 'change', function(){ ui.payYear = this.value; render(); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-savepay]'), function(b){
+    b.addEventListener('click', function(){
+      var bk = getBooking(b.getAttribute('data-savepay')); if(!bk) return;
+      var inp = $('rcv-'+bk.id);
+      var v = inp ? inp.value : '';
+      bk.payoutReceived = (v==='' ? null : clampAmt(v));
+      if(bk.payoutReceived!==null && !bk.payoutDate) bk.payoutDate = todayStr();
+      save(); render(); toast('Payout saved for '+fmtDate(bk.checkIn)+'.');
+    });
+  });
+  /* cleanings */
+  on('cfBooking', 'change', function(){
+    var bk = getBooking(this.value);
+    if(bk && $('cfDate') && !$('cfDate').value) $('cfDate').value = bk.checkOut;
+  });
+  on('cfSave', 'click', function(){
+    var bk = getBooking($('cfBooking').value);
+    if(!bk){ toast('Pick a booking.', true); return; }
+    var date = $('cfDate').value;
+    if(date && !isValidDateStr(date)){ toast('Cleaning date is not valid.', true); return; }
+    var data = {
+      bookingId: bk.id, date: date || bk.checkOut,
+      cost: clampAmt($('cfCost').value), cleaner: $('cfCleaner').value.trim(),
+      done: $('cfDone').value==='1'
+    };
+    if(ui.editCleaningId){
+      var c = state.cleanings.filter(function(x){ return x.id===ui.editCleaningId; })[0]; if(!c) return;
+      for(var k in data) c[k] = data[k];
+      ui.editCleaningId = null; toast('Cleaning saved.');
+    } else {
+      data.id = uid('cl'); data.demo = false;
+      state.cleanings.push(data); toast('Cleaning logged.');
+    }
+    save(); render();
+  });
+  on('cfCancel', 'click', function(){ ui.editCleaningId = null; render(); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-editcl]'), function(b){
+    b.addEventListener('click', function(){ ui.editCleaningId = b.getAttribute('data-editcl'); render(); try{ window.scrollTo(0,0); }catch(e){} });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-delcl]'), function(b){
+    b.addEventListener('click', function(){
+      if(!confirm('Delete this cleaning record?')) return;
+      var id = b.getAttribute('data-delcl');
+      state.cleanings = state.cleanings.filter(function(c){ return c.id!==id; });
+      save(); render(); toast('Cleaning deleted.');
+    });
+  });
+  /* expenses */
+  on('efSave', 'click', function(){
+    var pid = $('efProp').value;
+    if(!getProperty(pid)){ toast('Pick a property.', true); return; }
+    var date = $('efDate').value;
+    if(!isValidDateStr(date)){ toast('Date must be valid.', true); return; }
+    var amt = clampAmt($('efAmt').value);
+    if(!(amt>0)){ toast('Enter an amount above $0.', true); return; }
+    var data = { propertyId: pid, date: date, category: $('efCat').value, amount: amt, vendor: $('efVendor').value.trim(), note: $('efNote').value.trim() };
+    if(ui.editExpenseId){
+      var e = state.expenses.filter(function(x){ return x.id===ui.editExpenseId; })[0]; if(!e) return;
+      for(var k in data) e[k] = data[k];
+      ui.editExpenseId = null; toast('Expense saved.');
+    } else {
+      data.id = uid('exp'); data.demo = false;
+      state.expenses.push(data); toast('Expense added.');
+    }
+    save(); render();
+  });
+  on('efCancel', 'click', function(){ ui.editExpenseId = null; render(); });
+  on('expYearSel', 'change', function(){ ui.expYear = this.value; render(); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-editexp]'), function(b){
+    b.addEventListener('click', function(){ ui.editExpenseId = b.getAttribute('data-editexp'); render(); try{ window.scrollTo(0,0); }catch(e){} });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-delexp]'), function(b){
+    b.addEventListener('click', function(){
+      if(!confirm('Delete this expense?')) return;
+      var id = b.getAttribute('data-delexp');
+      state.expenses = state.expenses.filter(function(x){ return x.id!==id; });
+      save(); render(); toast('Expense deleted.');
+    });
+  });
+  /* schedule E */
+  on('seYearSel', 'change', function(){ ui.seYear = this.value; render(); });
+  on('sePrint', 'click', function(){ printScheduleE(); });
+  /* settings */
+  on('sfSave', 'click', function(){
+    state.settings.hostName = $('sfHost').value.trim();
+    state.settings.businessName = $('sfBiz').value.trim();
+    state.settings.email = $('sfEmail').value.trim();
+    state.settings.phone = $('sfPhone').value.trim();
+    save(); toast('Settings saved.');
+  });
+  on('btnExport', 'click', function(){
+    var text = exportText();
+    $('backupText').value = text;
+    try{
+      var blob = new Blob([text], { type:'application/json' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'hostledger-backup.json';
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ try{ URL.revokeObjectURL(a.href); }catch(e){} }, 500);
+    }catch(e){ /* textarea copy still works */ }
+    toast('Backup ready — keep the file somewhere safe.');
+  });
+  on('btnImportText', 'click', function(){
+    var text = $('backupText').value;
+    if(!text.trim()){ toast('Paste a backup first.', true); return; }
+    importFromText(text);
+  });
+  var fileInput = $('importFile');
+  if(fileInput){
+    fileInput.addEventListener('change', function(){
+      var f = fileInput.files && fileInput.files[0];
+      if(!f) return;
+      var reader = new FileReader();
+      reader.onload = function(){ importFromText(String(reader.result||'')); };
+      reader.onerror = function(){ toast('Could not read that file.', true); };
+      reader.readAsText(f);
+    });
+  }
+  on('btnClearDemo', 'click', function(){
+    if(!confirm('Remove the sample property, bookings, cleanings and expenses? Your own records stay.')) return;
+    clearDemo(); render(); toast('Sample data cleared.');
+  });
+  on('btnEraseAll', 'click', function(){
+    if(!confirm('Erase EVERYTHING in HostLedger on this device? Export a backup first if you want any of it.')) return;
+    state = blankState();
+    state.demoSeeded = true; /* an erased book stays erased */
+    ui.editPropertyId = ui.editBookingId = ui.editExpenseId = ui.editCleaningId = null;
+    ui.dashProp = ''; ui.bkProp = ''; ui.bkFormProp = '';
+    save(); render(); toast('Everything erased.');
+  });
+}
+
+/* ---------- init ---------- */
+load();
+render();
+</script>
+
+<style id="ww-legal-css">
+.ww-legal-overlay{position:fixed;inset:0;z-index:99990;background:rgba(10,12,14,.72);display:flex;align-items:center;justify-content:center;padding:14px;box-sizing:border-box}
+.ww-legal-card{background:#fff;color:#17202a;border-radius:14px;max-width:560px;width:100%;max-height:92vh;overflow:auto;padding:22px 20px;box-sizing:border-box;box-shadow:0 18px 50px rgba(0,0,0,.35);font-family:inherit}
+.ww-legal-card h2{margin:0 0 4px;font-size:22px}
+.ww-legal-card h3{margin:16px 0 6px}
+.ww-legal-sum{font-size:16px;line-height:1.45;margin:12px 0}
+.ww-legal-sum p{margin:6px 0;font-weight:600}
+.ww-legal-note{font-size:13px;color:#445; margin:10px 0}
+.ww-legal-updated{background:#fff3cd;border:1px solid #e3c565;border-radius:8px;padding:8px 10px;font-size:14px;margin:10px 0}
+.ww-legal-btn{display:block;width:100%;min-height:48px;margin:10px 0;padding:12px 14px;font-size:16px;border-radius:10px;border:1px solid #9db2c3;background:#eef4f8;color:#17202a;cursor:pointer;box-sizing:border-box}
+.ww-legal-agree{background:#17603a;border-color:#17603a;color:#fff;font-weight:700}
+.ww-legal-page{position:fixed;inset:0;z-index:99980;background:#fff;color:#17202a;overflow:auto;padding:18px 16px 40px;box-sizing:border-box}
+.ww-legal-page .ww-legal-inner{max-width:680px;margin:0 auto}
+.ww-legal-page h2{font-size:21px}.ww-legal-page h3{font-size:17px;margin-top:18px}.ww-legal-page p,.ww-legal-page li{font-size:14.5px;line-height:1.55}
+.ww-legal-close{min-height:48px;padding:10px 18px;font-size:15px;border-radius:10px;border:1px solid #9db2c3;background:#eef4f8;cursor:pointer}
+.ww-legal-open-btn{min-height:48px}
+.ww-legal-check{display:flex;gap:10px;align-items:flex-start;margin:12px 0;font-size:15px;line-height:1.4;cursor:pointer;text-align:left}
+.ww-legal-check input{width:22px;height:22px;min-width:22px;margin-top:1px;cursor:pointer}
+.ww-legal-agree[disabled]{opacity:.45;cursor:not-allowed}
+[hidden]{display:none !important}
+</style>
+
+<div id="wwLegalOverlay" class="ww-legal-overlay" hidden>
+  <div class="ww-legal-card" role="dialog" aria-modal="true" aria-labelledby="wwLegalTitle">
+    <h2>HostLedger</h2>
+    <h3 id="wwLegalTitle" style="margin-top:2px">Terms of Use</h3>
+    <div id="wwLegalUpdated" class="ww-legal-updated" hidden>Our terms were updated (v1.0).</div>
+    <div class="ww-legal-sum">
+      <p>Your data stays on your device.</p>
+      <p>Estimates are aids, not guarantees.</p>
+      <p>You're responsible for checking outputs before you rely on them.</p>
+    </div>
+    <p class="ww-legal-note">The full Terms and Disclaimer are one tap away, now and any time in Settings → Legal.</p>
+    <button type="button" class="ww-legal-btn" id="wwLegalReadTerms">Read the full Terms</button>
+    <button type="button" class="ww-legal-btn" id="wwLegalReadDisc">Read the Estimator Disclaimer</button>
+    <label class="ww-legal-check" for="wwLegalCheck"><input type="checkbox" id="wwLegalCheck"><span>I have read the disclaimer and I agree to the Terms of Use</span></label>
+    <button type="button" class="ww-legal-btn ww-legal-agree" id="wwLegalAgree" disabled>I Agree</button>
+  </div>
+</div>
+<div id="wwLegalReader" class="ww-legal-page" hidden>
+  <div class="ww-legal-inner">
+    <button type="button" class="ww-legal-close" id="wwLegalReaderBack">← Back</button>
+    <div id="wwLegalReaderBody"></div>
+  </div>
+</div>
+<div id="wwLegalPage" class="ww-legal-page" hidden>
+  <div class="ww-legal-inner">
+    <button type="button" class="ww-legal-close" id="wwLegalPageClose">← Back</button>
+    <h2>Legal</h2>
+    <h3>Terms of Use</h3>
+    <div id="wwLegalTermsText"><h2>Terms of Use — White Wolf Digital Apps</h2>
+<p><strong>Version 1.0</strong></p>
+<p><strong>Seller: White Wolf Tree Service LLC, selling digital products under the name &quot;White Wolf Digital&quot;</strong></p>
+<p><strong>Contact: whitewolfoklahoma@gmail.com</strong></p>
+<hr>
+<h3>1. What you&#x27;re buying</h3>
+<p>Our apps (including ForgeFit AI, ForgeKitchen, TreeBid Pro, SnowBid,</p>
+<p>WashPrice Pro, RoofSquares, JobProfit Tracker, PastureLedger, and the other</p>
+<p>titles sold under White Wolf Digital) are single-file software tools. When</p>
+<p>you buy one, you are buying a <strong>license to use the file</strong>, not ownership of</p>
+<p>the software itself.</p>
+<h3>2. Your license</h3>
+<ul>
+<li>You may use the app for your own personal or business work.</li>
+<li>You may open it on your own devices (phone, tablet, computer) and move your</li>
+</ul>
+<p>  own data between them using the app&#x27;s built-in backup/export tools.</p>
+<ul>
+<li>You may <strong>not</strong> resell, redistribute, give away, upload, or share the app</li>
+</ul>
+<p>  file (or a copy of it) with anyone else — including posting it online,</p>
+<p>  bundling it with other products, or selling access to it.</p>
+<ul>
+<li>You may <strong>not</strong> claim the app as your own work, remove its branding or</li>
+</ul>
+<p>  notices, or use it to build a competing product for resale.</p>
+<ul>
+<li>One purchase = one buyer. A business purchase covers the buyer and their</li>
+</ul>
+<p>  own employees using it for that business&#x27;s work; it does not cover other</p>
+<p>  businesses.</p>
+<h3>3. Your data stays yours — and stays on your device</h3>
+<ul>
+<li>The current versions of our apps run <strong>entirely on your device</strong>. They have</li>
+</ul>
+<p>  no accounts, no sign-in, no analytics, and they collect, transmit, and store</p>
+<p>  <strong>none</strong> of your information on any server. We never see your data.</p>
+<ul>
+<li>Your records are stored in your browser/app storage on your device. **You</li>
+</ul>
+<p>  are responsible for backing them up** using the app&#x27;s export tools. If you</p>
+<p>  clear your browser data, lose your device, or uninstall the app, your</p>
+<p>  records may be permanently lost, and we cannot recover them — we never had</p>
+<p>  a copy.</p>
+<ul>
+<li>Files you export (backups, quotes, PDFs) are under your control. Where you</li>
+</ul>
+<p>  store or send them is up to you.</p>
+<h3>4. Estimates are tools, not guarantees</h3>
+<p>Every number our apps produce — bids, prices, costs, calorie targets,</p>
+<p>projections, schedules, totals — is an **estimate generated from the</p>
+<p>information you enter and the settings you choose**. Outputs are aids for</p>
+<p>your own judgment, not guarantees of price, profit, outcome, or result. You</p>
+<p>are responsible for checking any output before relying on it (see also the</p>
+<p>disclaimer that applies to your app: Health Disclaimer for fitness/nutrition</p>
+<p>apps, Estimator Disclaimer for contractor tools). If an input is wrong, the</p>
+<p>output will be wrong.</p>
+<h3>5. Acceptable use</h3>
+<p>Don&#x27;t use the apps to break the law, infringe anyone&#x27;s rights, or</p>
+<p>misrepresent quotes, invoices, or records to your own customers. For the</p>
+<p>fitness apps, the guardrails in the app (healthy-rate limits, calorie floor)</p>
+<p>are part of the product — don&#x27;t treat the app as a way around them.</p>
+<h3>6. Provided &quot;as is&quot;</h3>
+<p>The apps are provided **&quot;as is&quot; and &quot;as available,&quot; without warranties of</p>
+<p>any kind**, express or implied — including merchantability, fitness for a</p>
+<p>particular purpose, accuracy of calculations, and uninterrupted or</p>
+<p>error-free operation — to the maximum extent allowed by law. Software has</p>
+<p>bugs; browsers change; we work to fix problems but do not promise any app is</p>
+<p>error-free or will work on every device or browser forever.</p>
+<h3>7. Limitation of liability</h3>
+<p>To the maximum extent allowed by law:</p>
+<ul>
+<li>We are **not liable for indirect, incidental, special, or consequential</li>
+</ul>
+<p>  damages** — including lost profits, lost or mispriced jobs, lost data, or</p>
+<p>  business interruption — arising from use of the apps.</p>
+<ul>
+<li>Our total liability for any claim connected to an app is limited to the</li>
+</ul>
+<p>  <strong>amount you paid for that app</strong>.</p>
+<ul>
+<li>Nothing in these terms limits liability that cannot legally be limited.</li>
+</ul>
+<h3>8. Refunds</h3>
+<p>Refunds are handled **by the storefront you bought from, under that</p>
+<p>storefront&#x27;s policy** — Gumroad&#x27;s refund policy for Gumroad purchases, and</p>
+<p>Google Play&#x27;s refund policy for Play purchases. These terms do not add to,</p>
+<p>replace, or override the storefront&#x27;s refund rules. If a file is defective</p>
+<p>and won&#x27;t open, contact us at whitewolfoklahoma@gmail.com and we&#x27;ll fix or</p>
+<p>replace the file.</p>
+<h3>9. Updates and changes to these terms</h3>
+<ul>
+<li>We may release updated versions of an app. Updates may add, change, or</li>
+</ul>
+<p>  remove features.</p>
+<ul>
+<li>We may update these terms. The version you agreed to is recorded in the</li>
+</ul>
+<p>  app (version number and date) at first-run acceptance. If terms change,</p>
+<p>  the app may ask you to accept the new version once on next open. Updated</p>
+<p>  terms apply going forward, not retroactively.</p>
+<ul>
+<li>If you don&#x27;t agree to an updated version of the terms, stop using the app.</li>
+</ul>
+<h3>10. Governing law</h3>
+<p>These terms are governed by the laws of the <strong>State of Oklahoma</strong>, USA.</p>
+<p>(Attorney to confirm governing law and venue before publication.)</p>
+<h3>11. Contact</h3>
+<p>White Wolf Tree Service LLC (White Wolf Digital) —</p>
+<p>whitewolfoklahoma@gmail.com.</p>
+<hr>
+<h3>CONNECTED FEATURES — takes effect only when these features ship</h3>
+<p>*The sections below apply only to future connected features (device sync via</p>
+<p>Health Connect, AI voice logging, and the AI Goal Preview in ForgeFit). They</p>
+<p>do not apply to the current offline versions, which never transmit data.*</p>
+<ul>
+<li><strong>Opt-in only.</strong> Connected features are off by default. Each one asks for</li>
+</ul>
+<p>  your separate, explicit consent — on its own consent screen, in plain</p>
+<p>  language — before anything leaves your device. Declining never disables</p>
+<p>  the app&#x27;s offline features.</p>
+<ul>
+<li><strong>What gets sent.</strong> Only what the consent screen names, only when you use</li>
+</ul>
+<p>  the feature: for example, a meal description (text, or audio only if cloud</p>
+<p>  transcription is on) for AI voice logging, or the single photo you choose</p>
+<p>  for an AI Goal Preview.</p>
+<ul>
+<li><strong>No retention by us.</strong> Our relay service passes your request to the named</li>
+</ul>
+<p>  AI provider and keeps nothing — no copies of your photos, audio,</p>
+<p>  transcripts, or entries are stored on our servers. Provider handling is</p>
+<p>  described on the consent screen and in the Privacy Policy.</p>
+<ul>
+<li><strong>Health data stays on the device.</strong> Device sync (Health Connect) reads</li>
+</ul>
+<p>  your health data on your phone and stores it in the app on your phone. It</p>
+<p>  is not uploaded to us.</p>
+<ul>
+<li><strong>Allowances.</strong> Some connected features run on third-party AI services we</li>
+</ul>
+<p>  pay for per use, so they may include a monthly allowance described in the</p>
+<p>  app (for example, a set number of AI previews or voice entries per month),</p>
+<p>  with optional additional credits. Allowances and pricing will be shown in</p>
+<p>  the app before you use the feature; they are not a subscription unless the</p>
+<p>  app says so in plain words.</p>
+<ul>
+<li><strong>Permissions.</strong> Connected features may request device permissions (such</li>
+</ul>
+<p>  as Health Connect access or the microphone) at the moment you first use</p>
+<p>  them. You can revoke permissions any time in your device settings; the</p>
+<p>  related feature will simply stop working.</p></div>
+    <h3>Estimator Disclaimer</h3><div id="wwLegalDiscText"><h2>Estimator Disclaimer — Contractor &amp; Trade Tools</h2>
+<p>**Applies to: TreeBid Pro, SnowBid, WashPrice Pro, RoofSquares, JobProfit</p>
+<p>Tracker, FieldForms Toolkit, PaintPro, FenceDeck, MarketMaker, and the other</p>
+<p>estimating/pricing tools sold under White Wolf Digital — including bundles</p>
+<p>that contain them.**</p>
+<h3>Estimating aids, not finished quotes</h3>
+<ul>
+<li>These apps are <strong>estimating and record-keeping aids</strong>. Every bid, price,</li>
+</ul>
+<p>  cost, measurement, and total they produce is an **estimate based on the</p>
+<p>  information and rates you enter**.</p>
+<ul>
+<li>**You — the business owner — are responsible for verifying everything</li>
+</ul>
+<p>  before you quote a customer:** measurements and quantities, site</p>
+<p>  conditions, your current material and labor costs, your rates and margins,</p>
+<p>  taxes, permit and license requirements, disposal rules, and any contract</p>
+<p>  terms.</p>
+<ul>
+<li>Default rates, presets, and sample data included in the apps are starting</li>
+</ul>
+<p>  points only. They are not market prices, not industry standards, and not</p>
+<p>  a recommendation of what you should charge.</p>
+<ul>
+<li>A saved quote keeps the prices in effect when you created it (price</li>
+</ul>
+<p>  snapshot). Changing your presets later does not change saved quotes —</p>
+<p>  and a saved quote is still your responsibility to review before sending.</p>
+<h3>Specific tools</h3>
+<ul>
+<li><strong>TreeBid Pro:</strong> tree work is dangerous and site-specific. Difficulty</li>
+</ul>
+<p>  factors and presets cannot see the actual tree, lean, rot, targets, or</p>
+<p>  access. Inspect every job in person before final pricing. The &quot;Invoice</p>
+<p>  with Wave&quot; feature is an open-and-paste handoff — TreeBid does not</p>
+<p>  connect to Wave, and the invoice you send from Wave is yours.</p>
+<ul>
+<li><strong>RoofSquares / measurement tools:</strong> confirm roof measurements and pitch</li>
+</ul>
+<p>  in person or by your usual method before ordering materials.</p>
+<ul>
+<li><strong>SnowBid / seasonal tools:</strong> route times, snowfall amounts, and service</li>
+</ul>
+<p>  pricing vary by storm and site; seasonal contracts are your agreement</p>
+<p>  with your customer, on your terms.</p>
+<ul>
+<li><strong>JobProfit Tracker:</strong> profit figures depend on the costs you enter.</li>
+</ul>
+<p>  The app is not accounting or tax software and does not replace your</p>
+<p>  bookkeeper or accountant.</p>
+<h3>Bottom line</h3>
+<p>If an output and your judgment disagree, trust your judgment — then fix the</p>
+<p>input. We are not responsible for jobs won, lost, or mispriced based on app</p>
+<p>outputs, within the limits of the Terms of Use.</p></div>
+    <h3>Privacy</h3>
+    <p>This app has no accounts and collects no data. Everything you enter is stored only on this device, in this browser's local storage. Nothing is uploaded, tracked, or shared. Exported backup files are under your control — where you store or send them is up to you. If you clear your browser data, lose your device, or uninstall the app, your records may be permanently lost, so keep backups using the app's export tools.</p>
+    <p id="wwLegalAcceptLine"></p>
+    <p><strong>Sold by White Wolf Tree Service LLC (White Wolf Digital) — whitewolfoklahoma@gmail.com</strong></p>
+  </div>
+</div>
+
+<script>
+/* White Wolf Digital — in-app legal pattern v1 (Terms acceptance + Settings > Legal) */
+const TERMS_VERSION = "1.0";
+(function(){
+  var WW_KEY = "hostledger_v1";
+  var WW_SAVE = "save";
+  var WW_DISC = true;
+  function wwRaw(){ try{ var r = localStorage.getItem(WW_KEY); return r ? JSON.parse(r) : null; }catch(e){ return null; } }
+  function wwStateObj(){ try{ if(typeof state !== "undefined" && state && typeof state === "object") return state; }catch(e){} return null; }
+  function wwGetLegal(){
+    var st = wwStateObj(); if(st && st.legal && typeof st.legal === "object") return st.legal;
+    var r = wwRaw(); if(r && r.legal && typeof r.legal === "object") return r.legal;
+    return null;
+  }
+  function wwPersist(rec){
+    var st = wwStateObj();
+    if(st){ st.legal = rec;
+      try{ if(WW_SAVE === "saveState" && typeof saveState === "function"){ saveState(); return; } }catch(e){}
+      try{ if(WW_SAVE === "save" && typeof save === "function"){ save(); return; } }catch(e){}
+    }
+    try{ var r = wwRaw() || {}; r.legal = rec; localStorage.setItem(WW_KEY, JSON.stringify(r)); }catch(e){}
+  }
+  function wwAcceptLine(){
+    var el = document.getElementById("wwLegalAcceptLine"); if(!el) return;
+    var rec = wwGetLegal();
+    if(rec && rec.acceptedDate) el.textContent = "You agreed to Terms v" + (rec.termsVersion || TERMS_VERSION) + " on " + rec.acceptedDate + ".";
+    else el.textContent = "No acceptance recorded yet on this device.";
+  }
+  function wwShowReader(which){
+    var body = document.getElementById("wwLegalReaderBody");
+    var src = document.getElementById(which === "disc" ? "wwLegalDiscText" : "wwLegalTermsText");
+    if(!body || !src) return;
+    body.innerHTML = src.innerHTML;
+    document.getElementById("wwLegalReader").hidden = false;
+  }
+  function wwOpenLegal(){ wwAcceptLine(); document.getElementById("wwLegalPage").hidden = false; }
+  window.__wwOpenLegal = wwOpenLegal;
+  document.addEventListener("click", function(ev){
+    var t = ev.target && ev.target.closest ? ev.target.closest("[data-ww-legal]") : null;
+    if(t){ ev.preventDefault(); wwOpenLegal(); }
+  });
+  var agreeBtn = document.getElementById("wwLegalAgree");
+  var wwCheck = document.getElementById("wwLegalCheck");
+  function wwGate(){ if(agreeBtn && wwCheck) agreeBtn.disabled = !wwCheck.checked; }
+  if(wwCheck) wwCheck.addEventListener("change", wwGate);
+  wwGate();
+  if(agreeBtn) agreeBtn.addEventListener("click", function(){
+    if(wwCheck && !wwCheck.checked){ wwGate(); return; }
+    var rec = { termsVersion: TERMS_VERSION, acceptedDate: new Date().toISOString().slice(0,10), disclaimerShown: WW_DISC };
+    wwPersist(rec);
+    document.getElementById("wwLegalOverlay").hidden = true;
+    wwAcceptLine();
+  });
+  var rt = document.getElementById("wwLegalReadTerms");
+  if(rt) rt.addEventListener("click", function(){ wwShowReader("terms"); });
+  var rd = document.getElementById("wwLegalReadDisc");
+  if(rd) rd.addEventListener("click", function(){ wwShowReader("disc"); });
+  var rb = document.getElementById("wwLegalReaderBack");
+  if(rb) rb.addEventListener("click", function(){ document.getElementById("wwLegalReader").hidden = true; });
+  var pc = document.getElementById("wwLegalPageClose");
+  if(pc) pc.addEventListener("click", function(){ document.getElementById("wwLegalPage").hidden = true; });
+  var rec = wwGetLegal();
+  if(rec && rec.termsVersion === TERMS_VERSION){
+    var st2 = wwStateObj();
+    if(st2 && !st2.legal) wwPersist(rec);
+    wwAcceptLine();
+  } else {
+    if(rec && rec.termsVersion){ var u = document.getElementById("wwLegalUpdated"); if(u) u.hidden = false; }
+    document.getElementById("wwLegalOverlay").hidden = false;
+  }
+})();
+</script>
+
+</body>
+</html>
