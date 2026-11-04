@@ -87,6 +87,8 @@ footer.app{max-width:980px; margin:0 auto; padding:0 12px 30px; color:var(--mute
   <div class="brand">🌊 Host<span class="gold">Ledger</span></div>
   <div class="tag">Bookkeeping &amp; profit tracker for Airbnb &amp; Vrbo hosts — no subscription, works offline</div>
 </header>
+<div style="text-align:center;padding:12px 16px;background:#fff8e6;border-bottom:2px solid #e8a13a;"><a href="https://travisbriggs.gumroad.com/l/gnoqmd" target="_blank" rel="noopener" style="display:inline-block;background:#e8a13a;color:#1d2b2e;font-weight:800;font-size:17px;padding:10px 22px;border-radius:8px;text-decoration:none;">Get the full version — $49</a></div>
+
 <nav class="tabs" id="tabs"></nav>
 <main id="main"></main>
 <footer class="app">HostLedger runs 100% offline. Your data lives only in this browser on this device — export a backup from Settings regularly. Bookkeeping aid only, not tax advice.</footer>
@@ -918,7 +920,7 @@ function viewHelp(){
   + '<h3>Counting conventions</h3>'
   + '<p>A booking counts toward the <b>month and year it checks in</b> — a stay that starts Dec 30 and runs into January is a December booking here. Cancelled bookings stay on the record but are excluded from every total. Turnover cleanings belong in the Cleanings tab only; if you also log one as an expense, you will count it twice.</p>'
   + '<h3>Payouts</h3>'
-  + '<p>The “Suggest” button on the booking form fills the expected payout as nightly + cleaning − platform fee — what most platforms pay when taxes are remitted separately. If your platform hands you the taxes to remit yourself, type the expected amount yourself and remember that tax slice is still not income.</p>'
+  + '<p>On the booking form the expected payout fills in automatically as nightly + cleaning − platform fee (the “Suggest” button applies the same math) — what most platforms pay when taxes are remitted separately. Typing your own amount in that field overrides the auto-fill for that booking. If your platform hands you the taxes to remit yourself, type the expected amount yourself and remember that tax slice is still not income.</p>'
   + '<h3>Taxes &amp; Schedule E</h3>'
   + '<p>The Schedule E view groups your rents and expenses by the form line your preparer will use. Depreciation is <b>your</b> number: each property carries an annual depreciation amount you enter (ask your tax professional), and the app never calculates it. This app is a bookkeeping aid, not tax advice — short-term rentals have special rules, and local lodging-tax filings are separate from your income tax.</p>'
   + '<h3>Your data</h3>'
@@ -1023,6 +1025,20 @@ function bindView(){
   }
   ['bfIn','bfOut','bfNightly','bfCleaning','bfTaxes'].forEach(function(id){ on(id, 'input', bfPreview); on(id, 'change', bfPreview); });
   if($('bfIn')) bfPreview();
+  /* Auto-fill Host payout expected live, using the exact Suggest formula
+     (nightly + cleaning − platform fee), computed from the form inputs —
+     never stored separately. Once the user types in bfExpected directly,
+     their manual value wins for the rest of this form session; the flag is
+     local to this bind, so opening a different/new booking (a re-render)
+     re-enables auto-fill. Programmatic fills (including Suggest) do not
+     fire 'input' on bfExpected, so they never trip the manual flag. */
+  var bfExpectedManual = false;
+  function bfAutoPayout(){
+    if(bfExpectedManual || !$('bfExpected')) return;
+    $('bfExpected').value = round2(num($('bfNightly').value) + num($('bfCleaning').value) - num($('bfFee').value));
+  }
+  ['bfNightly','bfCleaning','bfFee'].forEach(function(id){ on(id, 'input', bfAutoPayout); on(id, 'change', bfAutoPayout); });
+  on('bfExpected', 'input', function(){ bfExpectedManual = true; });
   on('bfSuggest', 'click', function(){
     $('bfExpected').value = round2(num($('bfNightly').value) + num($('bfCleaning').value) - num($('bfFee').value));
     toast('Expected payout filled in — adjust if your platform counts it differently.');
